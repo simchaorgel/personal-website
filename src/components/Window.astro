@@ -1,0 +1,380 @@
+---
+interface Props {
+	title?: string;
+	open?: boolean;
+	id?: string;
+	/** CSS size values, e.g. "min(800px, 92vw)" */
+	width?: string;
+	height?: string;
+	/** Stays open independently — exempt from the single-window rule and Esc. */
+	persistent?: boolean;
+	/** Shows a maximize button that expands the window almost edge-to-edge. */
+	maximizable?: boolean;
+	/** Centre in the full viewport (ignoring the taskbar) instead of above it. */
+	fullCenter?: boolean;
+	/** Opens *on top of* the current window instead of replacing it (still closes
+	    when another window opens on top). Good for dialogs like Shutdown. */
+	overlay?: boolean;
+}
+
+const {
+	title = '',
+	open = false,
+	id,
+	width,
+	height,
+	persistent = false,
+	maximizable = false,
+	fullCenter = false,
+	overlay = false,
+} = Astro.props;
+
+const sizeStyle = [width && `--win-w: ${width}`, height && `--win-h: ${height}`]
+	.filter(Boolean)
+	.join('; ');
+---
+
+<section
+	id={id}
+	class:list={['window', { 'is-closed': !open }]}
+	style={sizeStyle}
+	data-persistent={persistent ? '' : undefined}
+	data-maximizable={maximizable ? '' : undefined}
+	data-full-center={fullCenter ? '' : undefined}
+	data-overlay={overlay ? '' : undefined}>
+	<div class="window-bar">
+		<span class="window-title">{title}</span>
+		<div class="window-controls">
+			{
+				maximizable && (
+					<button class="window-maximize" type="button" aria-label="Toggle maximize">
+						<svg class="window-maximize__icon" viewBox="0 0 12 12" aria-hidden="true">
+							<rect x="2" y="2" width="8" height="8" rx="1.5" />
+						</svg>
+					</button>
+				)
+			}
+			<button class="window-close" type="button" aria-label="Close window">
+				<svg class="window-close__x" viewBox="0 0 10 10" aria-hidden="true">
+					<path d="M2 2 L8 8 M8 2 L2 8" />
+				</svg>
+			</button>
+		</div>
+	</div>
+	<div class="window-body">
+		<slot />
+	</div>
+</section>
+
+<style>
+	.window {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+
+		width: var(--win-w, min(500px, 90vw));
+		height: var(--win-h, min(240px, 80vh));
+
+		background: var(--window-bg);
+		border: 3px solid var(--window-border);
+		border-radius: 14px;
+		/* Clip the bar's square corners to the window's rounded ones */
+		overflow: hidden;
+
+		display: flex;
+		flex-direction: column;
+
+		/* Above the taskbar (z-index: 10) */
+		z-index: 20;
+
+		transition: background-color 350ms ease;
+	}
+
+	.window.is-closed {
+		display: none;
+	}
+
+	/* "Sent" state — whole window turns green (used by the contact form). */
+	.window.is-sent {
+		background: #7fa35a;
+	}
+
+	/* `is-maximized` is just a state marker now — the actual geometry is applied
+	   as inline styles in JS, so animations aren't blocked by !important rules. */
+
+	.window-body {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+
+		/* Reserve the scrollbar gutter on both sides always, so collapsing content
+		   (which removes the scrollbar) doesn't shift the centered column. */
+		scrollbar-gutter: stable both-edges;
+
+		/* Minimal scrollbar (Firefox) */
+		scrollbar-width: thin;
+		scrollbar-color: rgba(58, 58, 58, 0.3) transparent;
+	}
+
+	/* Minimal scrollbar (WebKit/Chromium) */
+	.window-body::-webkit-scrollbar {
+		width: 10px;
+	}
+
+	.window-body::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.window-body::-webkit-scrollbar-thumb {
+		background: rgba(58, 58, 58, 0.3);
+		border-radius: 999px;
+		/* transparent border + padding-box clip = a slimmer, inset thumb */
+		border: 3px solid transparent;
+		background-clip: padding-box;
+	}
+
+	.window-body::-webkit-scrollbar-thumb:hover {
+		background: rgba(58, 58, 58, 0.5);
+		background-clip: padding-box;
+	}
+
+	.window-bar {
+		height: 38px;
+		background: var(--window-bar);
+		border-bottom: 3px solid var(--window-border);
+
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 8px;
+
+		cursor: grab;
+		/* Don't let the browser hijack the pointer for scroll/select while dragging */
+		touch-action: none;
+		user-select: none;
+	}
+
+	.window-bar:active {
+		cursor: grabbing;
+	}
+
+	.window-title {
+		color: #ece8d8;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 16px;
+		letter-spacing: 0.02em;
+		padding-left: 4px;
+	}
+
+	.window-controls {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.window-maximize {
+		width: 20px;
+		height: 20px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		background: #3f4a33; /* darker green than the bar */
+		border: 2px solid #fff;
+		border-radius: 3px;
+		cursor: pointer;
+		color: #fff;
+	}
+
+	.window-maximize__icon {
+		width: 9px;
+		height: 9px;
+		display: block;
+	}
+
+	.window-maximize__icon rect {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.5;
+	}
+
+	.window-close {
+		width: 20px;
+		height: 20px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		background: var(--close-red);
+		border: 2px solid #fff; /* white border only */
+		border-radius: 3px;
+
+		cursor: pointer;
+	}
+
+	.window-close__x {
+		width: 10px;
+		height: 10px;
+		display: block;
+	}
+
+	.window-close__x path {
+		stroke: #fff;
+		stroke-width: 2;
+		stroke-linecap: round;
+	}
+
+	/* Mobile: only *maximizable* windows open nearly full-screen (small margin,
+	   above the taskbar). Non-maximizable ones keep their normal size, like the
+	   Welcome card. !important overrides the inline left/top set on open. */
+	@media (max-width: 640px) {
+		.window[data-maximizable] {
+			top: 8px !important;
+			left: 8px !important;
+			width: calc(100vw - 16px) !important;
+			height: calc(100dvh - var(--taskbar-h) - 16px) !important;
+		}
+	}
+</style>
+
+<script>
+	const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	function clamp(value: number, min: number, max: number) {
+		return Math.max(min, Math.min(value, max));
+	}
+
+	function wireWindow(win: HTMLElement) {
+		const bar = win.querySelector<HTMLElement>('.window-bar');
+		if (!bar) return;
+
+		let startX = 0;
+		let startY = 0;
+		let startLeft = 0;
+		let startTop = 0;
+		let dragging = false;
+
+		bar.addEventListener('pointerdown', (e) => {
+			dragging = true;
+
+			// Switch from translate-based centering to explicit pixel coords,
+			// anchored to where the window currently sits.
+			const rect = win.getBoundingClientRect();
+			win.style.left = `${rect.left}px`;
+			win.style.top = `${rect.top}px`;
+			win.style.transform = 'none';
+
+			startX = e.clientX;
+			startY = e.clientY;
+			startLeft = rect.left;
+			startTop = rect.top;
+
+			bar.setPointerCapture(e.pointerId);
+		});
+
+		bar.addEventListener('pointermove', (e) => {
+			if (!dragging) return;
+
+			// Keep the whole window within the viewport.
+			const maxLeft = window.innerWidth - win.offsetWidth;
+			const maxTop = window.innerHeight - win.offsetHeight;
+
+			win.style.left = `${clamp(startLeft + (e.clientX - startX), 0, maxLeft)}px`;
+			win.style.top = `${clamp(startTop + (e.clientY - startY), 0, maxTop)}px`;
+		});
+
+		const end = (e: PointerEvent) => {
+			if (!dragging) return;
+			dragging = false;
+			try {
+				bar.releasePointerCapture(e.pointerId);
+			} catch {}
+		};
+
+		bar.addEventListener('pointerup', end);
+		bar.addEventListener('pointercancel', end);
+
+		// Close button — don't let a press on it start a window drag.
+		const closeBtn = win.querySelector<HTMLElement>('.window-close');
+		closeBtn?.addEventListener('pointerdown', (e) => e.stopPropagation());
+		closeBtn?.addEventListener('click', () => {
+			win.dispatchEvent(new CustomEvent('windowclose', { bubbles: true }));
+		});
+
+		// Maximize button — toggle near-full-screen (clearing the taskbar) with a
+		// FLIP grow/shrink animation. Geometry is applied inline (no !important),
+		// so it doesn't block the animation.
+		let savedStyle: Record<string, string> | null = null;
+
+		const toggleMaximize = () => {
+			const first = win.getBoundingClientRect();
+			const willMaximize = !win.classList.contains('is-maximized');
+
+			if (willMaximize) {
+				savedStyle = {
+					left: win.style.left,
+					top: win.style.top,
+					width: win.style.width,
+					height: win.style.height,
+					transform: win.style.transform,
+				};
+				win.classList.add('is-maximized');
+				win.style.left = '24px';
+				win.style.top = '24px';
+				win.style.width = 'calc(100vw - 48px)';
+				win.style.height = 'calc(100vh - 24px - var(--taskbar-h) - 12px)';
+				win.style.transform = 'none';
+			} else {
+				win.classList.remove('is-maximized');
+				if (savedStyle) {
+					win.style.left = savedStyle.left;
+					win.style.top = savedStyle.top;
+					win.style.width = savedStyle.width;
+					win.style.height = savedStyle.height;
+					win.style.transform = savedStyle.transform;
+				}
+			}
+
+			if (reduceMotion) return;
+
+			// Animate the box itself (left/top/width/height) rather than a transform
+			// scale — scaling distorts (squashes) the contents mid-flight because
+			// maximizing changes the window's aspect ratio. This reflows instead.
+			const last = win.getBoundingClientRect();
+			win.animate(
+				[
+					{
+						left: `${first.left}px`,
+						top: `${first.top}px`,
+						width: `${first.width}px`,
+						height: `${first.height}px`,
+					},
+					{
+						left: `${last.left}px`,
+						top: `${last.top}px`,
+						width: `${last.width}px`,
+						height: `${last.height}px`,
+					},
+				],
+				{ duration: 240, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+			);
+		};
+
+		const maxBtn = win.querySelector<HTMLElement>('.window-maximize');
+		maxBtn?.addEventListener('pointerdown', (e) => e.stopPropagation());
+		maxBtn?.addEventListener('click', toggleMaximize);
+	}
+
+	// Re-wire on initial load + after each ClientRouter navigation; the marker
+	// keeps a given window node from being bound twice.
+	function wireAllWindows() {
+		for (const win of document.querySelectorAll<HTMLElement>('.window')) {
+			if (win.dataset.dragWired) continue;
+			win.dataset.dragWired = '1';
+			wireWindow(win);
+		}
+	}
+
+	document.addEventListener('astro:page-load', wireAllWindows);
+</script>

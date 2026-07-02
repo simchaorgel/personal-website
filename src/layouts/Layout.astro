@@ -1,0 +1,359 @@
+---
+import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/newsreader';
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Taskbar from '../components/Taskbar.astro';
+import Window from '../components/Window.astro';
+import Info from '../components/Info.astro';
+import Shutdown from '../components/Shutdown.astro';
+
+interface Props {
+	title?: string;
+}
+
+const { title = 'My Site' } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<!-- Render-blocking: if the site is in its shut-down state (cookie set at
+		     shutdown, 5h TTL), flag <html> *before first paint* so the boot screen
+		     paints black on the first frame — no flash of the real site. Must stay
+		     inline (not a bundled/deferred Astro <script>) and near the top. -->
+		<script is:inline>
+			if (document.cookie.indexOf('shutdown=1') !== -1) {
+				document.documentElement.setAttribute('data-booting', '');
+			}
+		</script>
+		<link rel="icon" href="/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<ClientRouter />
+	</head>
+	<body>
+		<slot />
+
+		<!-- Shell windows, available on every desktop (opened from the taskbar) -->
+		<Window id="info" title="Info" fullCenter width="min(540px, 90vw)" height="min(350px, 80vh)">
+			<Info />
+		</Window>
+
+		<Window id="shutdown" title="Shutdown" overlay fullCenter width="min(500px, 90vw)" height="min(240px, 80vh)">
+			<Shutdown />
+		</Window>
+
+		<Taskbar transition:persist="taskbar" />
+
+		<!-- Full-screen shutdown overlay; revealed by `html[data-shutdown]`. -->
+		<div class="shutdown" aria-hidden="true">
+			<div class="shutdown__inner">
+				<div class="shutdown__spinner"></div>
+				<p class="shutdown__msg">Shutting down&hellip;</p>
+			</div>
+		</div>
+
+		<!-- Boot screen (stage 2); revealed on reload by `html[data-booting]`.
+		     One line cycles through the boot messages (see the boot script), then
+		     the Aero "Restart complete!" dialog appears; dismissing it reveals the
+		     site underneath. -->
+		<div class="boot" aria-hidden="true">
+			<p class="boot__line"></p>
+
+			<!-- A deliberate Windows Vista / 7 (Aero) pastiche. -->
+			<div class="aero" role="dialog" aria-label="Restart" hidden>
+				<div class="aero__bar">
+					<span class="aero__title">Restart</span>
+					<button
+						class="aero__cap aero__cap--close"
+						type="button"
+						data-restart-dismiss
+						aria-label="Close"
+					>
+						&#x2715;
+					</button>
+				</div>
+				<div class="aero__body">
+					<div class="aero__content">
+						<img class="aero__icon" src="/tick.svg" alt="" aria-hidden="true" />
+						<p class="aero__msg">Restart complete!</p>
+					</div>
+					<div class="aero__actions">
+						<button class="aero__ok" type="button" data-restart-dismiss>OK</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
+
+<script>
+	// Boot sequence (stage 2). Runs when the page loads in its shut-down state
+	// (the head script has already set `data-booting`, so the screen is black).
+	// Cycles one line of text through the list below, then clears the cookie and
+	// reveals the main site that's sitting underneath the overlay.
+
+	// Boot messages, shown in order.
+	const BOOT_LINES = [
+		'Connecting to servers…',
+		'Restarting kernell…',
+		'Connecting to Claude, chatGPT, Gemini, and Grok…',
+		'Disconnecting from Grok…',
+		'Eating cookies…',
+		'Solving the hard problem…',
+		'ERROR: Universe closed',
+		'Attempting to take rainbow…',
+		'Completing restart…'
+	];
+
+	const BOOT_INITIAL_MS = 4000; // black before the first line appears
+	const BOOT_LINE_MS = 3000; // how long each line stays up
+
+	let bootStarted = false;
+
+	function finishBoot() {
+		// Clear the shut-down state and drop the overlay to reveal the site.
+		document.cookie = 'shutdown=1; max-age=0; path=/; samesite=lax';
+		document.documentElement.removeAttribute('data-booting');
+	}
+
+	async function runBoot() {
+		const line = document.querySelector<HTMLElement>('.boot__line');
+		const dialog = document.querySelector<HTMLElement>('.aero');
+
+		const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+		await sleep(BOOT_INITIAL_MS);
+		for (const text of BOOT_LINES) {
+			// Show boot msg
+			if (line) line.textContent = text;
+			await sleep(BOOT_LINE_MS);
+		}
+
+		// Boot lines done → swap to the "Restart complete!" dialog. The site is
+		// revealed only once the user dismisses it (OK or close).
+		if (line) line.hidden = true;
+		if (dialog) {
+			dialog.hidden = false;
+			for (const btn of dialog.querySelectorAll<HTMLElement>('[data-restart-dismiss]')) {
+				btn.addEventListener('click', finishBoot, { once: true });
+			}
+		} else {
+			finishBoot();
+		}
+	}
+
+	document.addEventListener('astro:page-load', () => {
+		if (bootStarted) return;
+		if (!document.documentElement.hasAttribute('data-booting')) return;
+		bootStarted = true;
+		runBoot();
+	});
+</script>
+
+<script>
+	// Navigating *to* home should feel like going back, regardless of history
+	// direction — so force the transition direction by destination.
+	document.addEventListener('astro:before-preparation', (event) => {
+		const e = event as typeof event & { to: URL; direction: string };
+		if (e.to && e.to.pathname === '/') {
+			e.direction = 'back';
+		}
+	});
+</script>
+
+<script>
+	// The window system. Lives in the Layout so every desktop gets it: it wires
+	// any `[data-opens]` opener (desktop icon or taskbar button) to the `.window`
+	// it names, anywhere on the page. Re-runs on each navigation (ClientRouter
+	// swaps the DOM) and is idempotent via `data-wired` markers.
+	const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	const CLOSE_MS = 150;
+	const CLOSE_EASE = 'cubic-bezier(0.55, 0, 0.85, 0.35)'; // ease-in
+
+	// The open non-default window and the opener it collapses toward.
+	type OpenState = { win: HTMLElement; opener: HTMLElement };
+	let open: OpenState | null = null;
+	// An optional overlay window layered on top of `open` (e.g. Shutdown).
+	let overlay: OpenState | null = null;
+
+	// Each newly-opened window is raised above the rest, so a window that's
+	// closing (e.g. via the single-window rule) always animates *behind* it.
+	// Starts at the windows' base z-index (20); only ever increases.
+	let zTop = 20;
+
+	function placeCentered(el: HTMLElement) {
+		// Most windows centre in the space *above* the taskbar so they don't sit
+		// too low / under the bar. A window with `fullCenter` (data-full-center)
+		// is exempt — it centres in the full viewport.
+		const taskbarH =
+			parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-h')) || 0;
+		const availH = window.innerHeight - (el.hasAttribute('data-full-center') ? 0 : taskbarH);
+		el.style.transform = 'none';
+		el.style.left = `${Math.max(0, (window.innerWidth - el.offsetWidth) / 2)}px`;
+		el.style.top = `${Math.max(0, (availH - el.offsetHeight) / 2)}px`;
+	}
+
+	// Window at rest (none), an arced mid-point, and collapsed onto the opener.
+	function arcStops(w: HTMLElement, target: HTMLElement) {
+		const a = w.getBoundingClientRect();
+		const b = target.getBoundingClientRect();
+
+		const tx = b.left - a.left;
+		const ty = b.top - a.top;
+		const sx = b.width / a.width;
+		const sy = b.height / a.height;
+
+		const cdx = b.left + b.width / 2 - (a.left + a.width / 2);
+		const cdy = b.top + b.height / 2 - (a.top + a.height / 2);
+		const centerLen = Math.hypot(cdx, cdy);
+		let perpX = 0;
+		let perpY = 0;
+		if (centerLen > 1) {
+			perpX = -cdy / centerLen;
+			perpY = cdx / centerLen;
+		}
+		const arc = Math.min(centerLen * 0.15, 80); // bow height (subtle)
+
+		const mx = tx / 2 + perpX * arc;
+		const my = ty / 2 + perpY * arc;
+
+		return {
+			icon: `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})`,
+			mid: `translate(${mx}px, ${my}px) scale(${(1 + sx) / 2}, ${(1 + sy) / 2})`,
+			rest: 'none',
+		};
+	}
+
+	function isPersistent(win: HTMLElement) {
+		return win.hasAttribute('data-persistent');
+	}
+
+	function isOverlay(win: HTMLElement) {
+		return win.hasAttribute('data-overlay');
+	}
+
+	function openerFor(win: HTMLElement): HTMLElement | undefined {
+		return win.id
+			? (document.querySelector<HTMLElement>(`[data-opens="${win.id}"]`) ?? undefined)
+			: undefined;
+	}
+
+	function openWindow(win: HTMLElement, opener: HTMLElement) {
+		if (!win.classList.contains('is-closed')) return;
+
+		if (isPersistent(win)) {
+			// Independent of the single-window rule.
+		} else if (isOverlay(win)) {
+			// Layers on top of the current window without closing it; only replaces
+			// another overlay.
+			if (overlay && overlay.win !== win) closeWindow(overlay.win, overlay.opener);
+			overlay = { win, opener };
+		} else {
+			// A normal window: dismiss any overlay on top, then close the current
+			// window (single-window rule).
+			if (overlay) closeWindow(overlay.win, overlay.opener);
+			if (open && open.win !== win) closeWindow(open.win, open.opener);
+			open = { win, opener };
+		}
+
+		win.style.zIndex = String(++zTop);
+		win.classList.remove('is-closed');
+		placeCentered(win);
+	}
+
+	function closeWindow(win: HTMLElement, opener?: HTMLElement) {
+		if (win.classList.contains('is-closed')) return;
+
+		const finish = () => {
+			win.classList.add('is-closed');
+			win.classList.remove('is-maximized');
+			win.style.transform = 'none';
+			win.style.opacity = '';
+			win.style.width = '';
+			win.style.height = '';
+			if (open && open.win === win) open = null;
+			if (overlay && overlay.win === win) overlay = null;
+			win.dispatchEvent(new CustomEvent('windowclosed'));
+		};
+
+		if (reduceMotion || !opener) return finish();
+
+		const s = arcStops(win, opener);
+		win.style.transformOrigin = 'top left';
+		const anim = win.animate(
+			[
+				{ offset: 0, transform: s.rest, opacity: 1 },
+				{ offset: 0.5, transform: s.mid, opacity: 1 },
+				{ offset: 1, transform: s.icon, opacity: 0 },
+			],
+			{ duration: CLOSE_MS, easing: CLOSE_EASE },
+		);
+		anim.onfinish = finish;
+	}
+
+	// Re-runs on initial load and after every ClientRouter navigation.
+	// `data-wired` markers keep the *persisted* taskbar buttons from being bound
+	// more than once.
+	function setupDesktop() {
+		open = null;
+		overlay = null;
+
+		for (const opener of document.querySelectorAll<HTMLElement>('[data-opens]')) {
+			if (opener.dataset.wired) continue;
+			opener.dataset.wired = '1';
+			opener.addEventListener('click', () => {
+				const id = opener.dataset.opens;
+				const win = id ? document.getElementById(id) : null;
+				if (!win) return;
+				if (!win.classList.contains('is-closed') && !isPersistent(win)) {
+					closeWindow(win, opener);
+				} else {
+					openWindow(win, opener);
+				}
+			});
+		}
+
+		for (const win of document.querySelectorAll<HTMLElement>('.window')) {
+			if (!win.dataset.wired) {
+				win.dataset.wired = '1';
+				win.addEventListener('windowclose', () => closeWindow(win, openerFor(win)));
+			}
+			// Normalise an initially-open window, and track the open non-default one.
+			if (!win.classList.contains('is-closed')) {
+				placeCentered(win);
+				const opener = openerFor(win);
+				if (!isPersistent(win) && opener) {
+					if (isOverlay(win)) overlay = { win, opener };
+					else open = { win, opener };
+				}
+			}
+		}
+
+		// Home button (persisted taskbar) — wire once.
+		const homeBtn = document.querySelector<HTMLElement>('.taskbar-btn--home');
+		if (homeBtn && !homeBtn.dataset.wired) {
+			homeBtn.dataset.wired = '1';
+			homeBtn.addEventListener('click', (e) => {
+				if (location.pathname === '/' || location.pathname === '/index.html') {
+					e.preventDefault();
+					if (overlay) closeWindow(overlay.win, overlay.opener);
+					if (open) closeWindow(open.win, open.opener);
+				}
+			});
+		}
+	}
+
+	// Esc — bound once on the (persistent) document.
+	document.addEventListener('keydown', (e) => {
+		if (e.key !== 'Escape') return;
+		// Dismiss the overlay first, then the base window.
+		if (overlay) closeWindow(overlay.win, overlay.opener);
+		else if (open) closeWindow(open.win, open.opener);
+	});
+
+	document.addEventListener('astro:page-load', setupDesktop);
+</script>

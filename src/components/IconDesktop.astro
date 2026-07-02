@@ -1,0 +1,289 @@
+---
+import { Image } from 'astro:assets';
+
+// A reusable "nested desktop": a grid of launcher icons that each expand (via an
+// icon morph) into a detail panel. Shared by the Projects and Favourites windows.
+// This component owns the grid + the morph mechanics; each detail panel is an
+// <IconDetail> passed in via the default slot (so consumers own the body markup).
+export type IconDeskItem = {
+	id: string;
+	title: string;
+	icon?: ImageMetadata;
+};
+
+interface Props {
+	items: IconDeskItem[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="icondesk" data-view="desktop">
+	<!-- Launcher icons. Clicking one expands its detail panel out of the icon. -->
+	<section class="icondesk__grid">
+		{
+			items.map((p) => (
+				<button class="icondesk__icon" type="button" data-item={p.id}>
+					<span class="icondesk__icon-box">
+						{p.icon && (
+							<Image
+								src={p.icon}
+								alt={`${p.title} icon`}
+								class="icondesk__icon-img"
+								width={128}
+								height={128}
+							/>
+						)}
+					</span>
+					<span class="icondesk__icon-label">{p.title}</span>
+				</button>
+			))
+		}
+	</section>
+
+	<!-- Detail panels (<IconDetail> per item) are slotted in here by the consumer. -->
+	<slot />
+</div>
+
+<style>
+	/* Stage: clips the expand/collapse animation; the grid and detail panels are
+	   absolute layers within it. */
+	.icondesk {
+		position: relative;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	/* The nested desktop surface — icons laid out like a real desktop. */
+	.icondesk__grid {
+		position: absolute;
+		inset: 0;
+		overflow-y: auto;
+		box-sizing: border-box;
+		padding: 28px;
+
+		display: grid;
+		grid-template-columns: repeat(auto-fill, 132px);
+		gap: 34px 24px;
+		align-content: start;
+		justify-content: start;
+
+		scrollbar-width: thin;
+		scrollbar-color: rgba(58, 58, 58, 0.3) transparent;
+	}
+
+	.icondesk__grid::-webkit-scrollbar {
+		width: 10px;
+	}
+
+	.icondesk__grid::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.icondesk__grid::-webkit-scrollbar-thumb {
+		background: rgba(58, 58, 58, 0.3);
+		border-radius: 999px;
+		border: 3px solid transparent;
+		background-clip: padding-box;
+	}
+
+	/* While a detail panel is open, the grid behind it is inert. */
+	.icondesk[data-view='detail'] .icondesk__grid {
+		pointer-events: none;
+	}
+
+	.icondesk__icon {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+
+		padding: 6px;
+		background: none;
+		border: none;
+		border-radius: 8px;
+		color: inherit;
+		font: inherit;
+	}
+
+	.icondesk__icon-box {
+		width: 64px;
+		height: 64px;
+		background: var(--window-bg);
+		border: 3px solid var(--window-border);
+		border-radius: 12px;
+		overflow: hidden;
+		transition: border-color 120ms ease, box-shadow 120ms ease;
+	}
+
+	.icondesk__icon-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+
+	.icondesk__icon-label {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 18px;
+		color: var(--ink);
+		text-align: center;
+	}
+
+	.icondesk__icon:hover .icondesk__icon-box {
+		border-color: var(--window-bar);
+		box-shadow: 0 0 0 3px rgba(106, 122, 78, 0.18);
+	}
+
+	@media (max-width: 640px) {
+		.icondesk__grid {
+			padding: 20px;
+		}
+	}
+</style>
+
+<script>
+	const DUR = 380;
+	const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+
+	function wireIconDesk(root: HTMLElement) {
+		const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const panels = Array.from(root.querySelectorAll<HTMLElement>('.icondesk__detail'));
+		let animating = false;
+
+		const panelFor = (id: string | undefined) =>
+			panels.find((p) => p.dataset.detail === id) ?? null;
+
+		// The desktop icon currently opened, so Back can morph back into it.
+		let current: { panel: HTMLElement; iconEl: HTMLElement } | null = null;
+
+		// FLIP transform that places `el` exactly over `target` (origin: top-left).
+		function flipOver(el: HTMLElement, target: HTMLElement) {
+			const a = el.getBoundingClientRect();
+			const b = target.getBoundingClientRect();
+			return `translate(${b.left - a.left}px, ${b.top - a.top}px) scale(${b.width / a.width})`;
+		}
+
+		// A crisp, fully-opaque clone of the header icon, layered above the panel
+		// and positioned over the header slot — it's what actually flies, so the
+		// moving icon never fades with the panel.
+		function makeGhost(headerIcon: HTMLElement) {
+			const s = root.getBoundingClientRect();
+			const r = headerIcon.getBoundingClientRect();
+			const ghost = headerIcon.cloneNode(true) as HTMLElement;
+			ghost.classList.add('icondesk__head-icon--ghost');
+			ghost.style.margin = '0';
+			ghost.style.left = `${r.left - s.left}px`;
+			ghost.style.top = `${r.top - s.top}px`;
+			ghost.style.width = `${r.width}px`;
+			ghost.style.height = `${r.height}px`;
+			root.appendChild(ghost);
+			return ghost;
+		}
+
+		// Morph the icon between its grid slot and the header while the panel fades.
+		// `opening` picks the direction; `done` runs once the fade finishes.
+		function runMorph(panel: HTMLElement, iconEl: HTMLElement, opening: boolean, done: () => void) {
+			const headerIcon = panel.querySelector<HTMLElement>('.icondesk__head-icon');
+			const iconBox = iconEl.querySelector<HTMLElement>('.icondesk__icon-box') ?? iconEl;
+
+			if (reduce || !headerIcon) return done();
+
+			// Defensive: drop any stray ghost / running fade before starting.
+			root.querySelectorAll('.icondesk__head-icon--ghost').forEach((g) => g.remove());
+			panel.getAnimations().forEach((a) => a.cancel());
+
+			const ghost = makeGhost(headerIcon);
+			headerIcon.style.visibility = 'hidden'; // the ghost stands in during flight
+			const overGrid = flipOver(ghost, iconBox);
+
+			animating = true;
+			const flight = ghost.animate(
+				opening
+					? [{ transform: overGrid }, { transform: 'none' }]
+					: [{ transform: 'none' }, { transform: overGrid }],
+				{ duration: DUR, easing: EASE },
+			);
+			flight.onfinish = () => {
+				ghost.remove();
+				headerIcon.style.visibility = '';
+			};
+
+			const fade = panel.animate(
+				opening ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }],
+				{ duration: DUR, easing: EASE },
+			);
+			fade.onfinish = () => {
+				animating = false;
+				panel.style.opacity = '';
+				done();
+			};
+		}
+
+		function openDetail(id: string | undefined, iconEl: HTMLElement) {
+			if (animating || current) return;
+			const panel = panelFor(id);
+			if (!panel) return;
+
+			panel.hidden = false;
+			panel.scrollTop = 0;
+			root.dataset.view = 'detail';
+			iconEl.style.visibility = 'hidden'; // the header icon stands in for it
+			current = { panel, iconEl };
+
+			runMorph(panel, iconEl, true, () => {});
+		}
+
+		function closeDetail() {
+			if (animating || !current) return;
+			const { panel, iconEl } = current;
+			runMorph(panel, iconEl, false, () => {
+				panel.hidden = true;
+				iconEl.style.visibility = '';
+				root.dataset.view = 'desktop';
+				current = null;
+			});
+		}
+
+		for (const icon of root.querySelectorAll<HTMLElement>('.icondesk__icon')) {
+			icon.addEventListener('click', () => openDetail(icon.dataset.item, icon));
+		}
+
+		for (const btn of root.querySelectorAll<HTMLElement>('[data-back]')) {
+			btn.addEventListener('click', () => closeDetail());
+		}
+
+		// Reset to the grid once the window finishes closing, so reopening always
+		// starts on the desktop (not on whatever detail panel was last open). Done
+		// instantly (no morph) since it happens while the window is hidden.
+		root.closest<HTMLElement>('.window')?.addEventListener('windowclosed', () => {
+			root.querySelectorAll('.icondesk__head-icon--ghost').forEach((g) => g.remove());
+			for (const panel of panels) {
+				panel.getAnimations().forEach((a) => a.cancel());
+				panel.hidden = true;
+				panel.style.opacity = '';
+				const hi = panel.querySelector<HTMLElement>('.icondesk__head-icon');
+				if (hi) hi.style.visibility = '';
+			}
+			for (const icon of root.querySelectorAll<HTMLElement>('.icondesk__icon')) {
+				icon.style.visibility = '';
+			}
+			animating = false;
+			current = null;
+			root.dataset.view = 'desktop';
+		});
+	}
+
+	// Re-wire on initial load + after each ClientRouter navigation. The marker
+	// keeps each desktop (there may be several, e.g. Projects + Favourites) from
+	// being bound twice.
+	function wireAllIconDesks() {
+		for (const root of document.querySelectorAll<HTMLElement>('.icondesk')) {
+			if (root.dataset.wired) continue;
+			root.dataset.wired = '1';
+			wireIconDesk(root);
+		}
+	}
+
+	document.addEventListener('astro:page-load', wireAllIconDesks);
+</script>

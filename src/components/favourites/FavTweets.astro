@@ -1,0 +1,57 @@
+---
+import { Image } from 'astro:assets';
+
+// Auto-loads every image in src/assets/favourites/tweets/ — just drop screenshots
+// in that folder (named so they sort how you want, e.g. 01.png, 02.png …).
+const modules = import.meta.glob<{ default: ImageMetadata }>(
+	'../../assets/favourites/tweets/*.{jpg,jpeg,png,webp,avif}',
+	{ eager: true },
+);
+const shots = Object.entries(modules)
+	.sort(([a], [b]) => a.localeCompare(b))
+	.map(([, m]) => m.default);
+---
+
+<div class="tweets">
+	<p class="tweets__intro">
+		These are a bunch of tweets that I've found funny or thoughtful, selected based on me randomly deciding to screenshot. I endorse at least one of the points I read into each of these but not necessarily the intended reading. (ordered by age)
+	</p>
+
+	{
+		shots.length > 0 && (
+			<div class="tweets__gallery">
+				{shots.map((shot, i) => (
+					<Image src={shot} alt={`Saved tweet ${i + 1}`} class="tweets__shot" />
+				))}
+			</div>
+		)
+	}
+</div>
+
+<style>
+	.tweets__intro {
+		margin: 10px 0 40px 0;
+		font-family: var(--font-sans);
+		font-size: 16px;
+		line-height: 1.65;
+		color: rgba(255, 255, 255, 0.82);
+	}
+
+	/* Loose masonry: images keep their own proportions and pack into columns.
+	   `columns` is width-based, so the gallery gains columns as the window grows
+	   (e.g. on maximize) rather than holding a tight grid. */
+	.tweets__gallery {
+		margin-top: 22px;
+		columns: 340px;
+		column-gap: 16px;
+	}
+
+	.tweets__shot {
+		width: 100%;
+		height: auto;
+		display: block;
+		margin: 0 0 14px;
+		break-inside: avoid;
+		border-radius: 8px;
+	}
+</style>

@@ -1,0 +1,113 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+	label?: string;
+	/** Optional icon image shown in the box (otherwise a plain placeholder box). */
+	icon?: ImageMetadata;
+	/** id of the window this icon opens */
+	opens?: string;
+	/** if set, the icon is a link to another desktop instead of a window opener */
+	href?: string;
+	/** shared view-transition-name for a morph into the linked desktop */
+	transitionName?: string;
+
+	/* Placement — anchor to any edge(s) with these, OR float near the
+	   center with `center={[dx, dy]}` (px offset from the viewport middle). */
+	top?: string;
+	right?: string;
+	bottom?: string;
+	left?: string;
+	center?: [number, number];
+}
+
+const { label = '', icon, opens, href, transitionName, top, right, bottom, left, center } =
+	Astro.props;
+
+const boxStyle = transitionName ? `view-transition-name: ${transitionName}` : undefined;
+
+let placement: string;
+if (center) {
+	const [dx, dy] = center;
+	placement = `left: 50%; top: 50%; transform: translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px));`;
+} else {
+	placement = [
+		top && `top: ${top}`,
+		right && `right: ${right}`,
+		bottom && `bottom: ${bottom}`,
+		left && `left: ${left}`,
+	]
+		.filter(Boolean)
+		.join('; ');
+}
+---
+
+<div class="desktop-icon" style={placement}>
+	{
+		href ? (
+			<a
+				class="desktop-icon__box"
+				href={href}
+				style={boxStyle}
+				aria-label={label ? `Go to ${label}` : 'Navigate'}
+			>
+				{icon && (
+					<Image src={icon} alt="" width={128} height={128} class="desktop-icon__img" />
+				)}
+			</a>
+		) : (
+			<button
+				class="desktop-icon__box"
+				type="button"
+				style={boxStyle}
+				aria-label={label ? `Open ${label}` : 'Open window'}
+				data-opens={opens}
+			>
+				{icon && (
+					<Image src={icon} alt="" width={128} height={128} class="desktop-icon__img" />
+				)}
+			</button>
+		)
+	}
+	<span class="desktop-icon__label">{label}</span>
+</div>
+
+<style>
+	.desktop-icon {
+		position: fixed;
+
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.desktop-icon__box {
+		display: block;
+		width: 64px;
+		height: 64px;
+
+		/* Cream box; shows a clipped icon image when one is provided. */
+		background: var(--window-bg);
+		border: 3px solid var(--window-border);
+		border-radius: 12px;
+		overflow: hidden;
+
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.desktop-icon__img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+
+	.desktop-icon__label {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 18px;
+		color: var(--ink);
+		text-align: center;
+	}
+</style>

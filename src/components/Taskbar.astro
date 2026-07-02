@@ -1,0 +1,99 @@
+---
+---
+
+<footer class="taskbar">
+	<div class="taskbar__buttons">
+		<a class="taskbar-btn taskbar-btn--home" href="/" aria-label="Home">
+			<svg viewBox="0 -960 960 960" aria-hidden="true">
+				<path
+					d="M240-200h120v-200q0-17 11.5-28.5T400-440h160q17 0 28.5 11.5T600-400v200h120v-360L480-740 240-560v360Zm-80 0v-360q0-19 8.5-36t23.5-28l240-180q21-16 48-16t48 16l240 180q15 11 23.5 28t8.5 36v360q0 33-23.5 56.5T720-120H560q-17 0-28.5-11.5T520-160v-200h-80v200q0 17-11.5 28.5T400-120H240q-33 0-56.5-23.5T160-200Zm320-270Z"
+				></path>
+			</svg>
+		</a>
+
+		<button class="taskbar-btn taskbar-btn--info" type="button" data-opens="info" aria-label="Info">
+			<svg viewBox="0 -960 960 960" aria-hidden="true">
+				<!-- question mark only (hook + dot), no ring -->
+				<path
+					d="M513.5-254.5Q528-269 528-290t-14.5-35.5Q499-340 478-340t-35.5 14.5Q428-311 428-290t14.5 35.5Q457-240 478-240t35.5-14.5ZM484-652q25 0 43.5 16t18.5 40q0 22-13.5 39T502-525q-23 20-40.5 44T444-427q0 14 10.5 23.5T479-394q15 0 25.5-10t13.5-25q4-21 18-37.5t30-31.5q23-22 39.5-48t16.5-58q0-51-41.5-83.5T484-720q-38 0-72.5 16T359-655q-7 12-4.5 25.5T368-609q14 8 29 5t25-17q11-15 27.5-23t34.5-8Z"
+				></path>
+			</svg>
+		</button>
+
+		<button class="taskbar-btn taskbar-btn--shutdown" type="button" data-opens="shutdown" aria-label="Shut down">
+			<svg viewBox="0 -960 960 960" aria-hidden="true">
+				<path
+					d="M451.5-491.5Q440-503 440-520v-320q0-17 11.5-28.5T480-880q17 0 28.5 11.5T520-840v320q0 17-11.5 28.5T480-480q-17 0-28.5-11.5Zm-112 343q-65.5-28.5-114-77t-77-114Q120-405 120-480q0-61 20-118.5T198-704q11-14 28-13.5t30 13.5q11 11 10 27t-11 30q-27 36-41 79t-14 88q0 117 81.5 198.5T480-200q117 0 198.5-81.5T760-480q0-46-13.5-89.5T704-649q-10-13-11-28.5t10-26.5q12-12 29-12.5t28 12.5q39 48 59.5 105T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120q-75 0-140.5-28.5Z"
+				></path>
+			</svg>
+		</button>
+	</div>
+</footer>
+
+<style>
+	.taskbar {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: var(--taskbar-h);
+
+		/* Olive green with opacity so the grid shows faintly through */
+		background: rgba(86, 98, 70, 0.82);
+
+		z-index: 10;
+
+		/* Lift out of the page's view-transition so it stays put while desktops slide */
+		view-transition-name: taskbar;
+
+		/* Buttons centered as a group */
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.taskbar__buttons {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.taskbar-btn {
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		border: 3px solid var(--window-border);
+		border-radius: 8px;
+		color: #fff;
+		cursor: pointer;
+		text-decoration: none;
+	}
+
+	.taskbar-btn svg {
+		width: 20px;
+		height: 20px;
+		display: block;
+		fill: currentColor;
+	}
+
+	.taskbar-btn--home {
+		background: #33658a;
+	}
+
+	.taskbar-btn--info {
+		background: #33658a;
+	}
+
+	/* The question mark reads small on its own, so size it up a touch */
+	.taskbar-btn--info svg {
+		width: 28px;
+		height: 28px;
+	}
+
+	.taskbar-btn--shutdown {
+		background: var(--close-red);
+	}
+</style>

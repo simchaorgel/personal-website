@@ -1,0 +1,502 @@
+---
+---
+
+<div class="contact">
+	<p class="contact__lead">
+		If you would like to reach out please email me at <span class="contact__email"
+			>simchaorgel[at]gmail[dot]com</span
+		>, or use the form below.
+	</p>
+
+	<form
+		class="contact__form"
+		name="contact"
+		method="POST"
+		data-netlify="true"
+		data-netlify-honeypot="bot-field"
+		novalidate
+	>
+		<input type="hidden" name="form-name" value="contact" />
+
+		<p class="contact__hp" hidden>
+			<label>Leave this field empty: <input name="bot-field" /></label>
+		</p>
+
+		<label class="field">
+			<span class="field__head">
+				<span class="field__label">Name</span>
+				<span class="field__notice" hidden>This field is required</span>
+			</span>
+			<input type="text" name="name" autocomplete="name" required />
+		</label>
+
+		<label class="field">
+			<span class="field__head">
+				<span class="field__label">Email</span>
+				<span class="field__notice" hidden>This field is required</span>
+			</span>
+			<input type="email" name="email" autocomplete="email" required />
+		</label>
+
+		<label class="field">
+			<span class="field__head">
+				<span class="field__label">Message</span>
+				<span class="field__notice" hidden>This field is required</span>
+			</span>
+			<textarea name="message" rows="4" required></textarea>
+		</label>
+
+		<div class="slider" aria-label="Send message">
+			<span class="slider__label">Send message</span>
+			<div class="slider__knob" role="button" tabindex="0" aria-label="Send message">
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<path d="M5 12h14M13 6l6 6-6 6"></path>
+				</svg>
+			</div>
+		</div>
+
+		<p class="contact__error" hidden role="alert">
+			There was an error sending your message :(. Please email me directly
+		</p>
+	</form>
+
+	<div class="contact__success" hidden>
+		<svg class="contact__check" viewBox="0 0 52 52" aria-hidden="true">
+			<circle class="contact__check-circle" cx="26" cy="26" r="24"></circle>
+			<path class="contact__check-mark" d="M14 27l8 8 16-16"></path>
+		</svg>
+		<p class="contact__success-msg">Your message has been sent!</p>
+	</div>
+</div>
+
+<style>
+	.contact {
+		padding: 28px 32px;
+		color: var(--ink);
+		font-family: var(--font-sans);
+	}
+
+	.contact__lead {
+		margin: 0 0 24px;
+		font-size: 16px;
+		line-height: 1.6;
+	}
+
+	.contact__email {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 15px;
+	}
+
+	.contact__hp {
+		display: none;
+	}
+
+	.contact__form {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+
+	/* `display: flex` overrides the [hidden] attribute, so re-assert it */
+	.contact__form[hidden] {
+		display: none;
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.field__head {
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+	}
+
+	.field__label {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 13px;
+		color: var(--ink-muted);
+	}
+
+	/* Custom "required" notice, in place of Chrome's native validation bubble. */
+	.field__notice {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 12px;
+		color: var(--close-red);
+	}
+
+	.field__notice[hidden] {
+		display: none;
+	}
+
+	/* Inputs styled like windows: gray rounded border, no fill */
+	.field input,
+	.field textarea {
+		font-family: var(--font-sans);
+		font-size: 14px;
+		color: var(--ink);
+		background: transparent;
+		border: 2px solid var(--window-border);
+		border-radius: 8px;
+		padding: 8px 10px;
+	}
+
+	.field input:focus,
+	.field textarea:focus {
+		outline: none;
+		border-color: var(--window-bar);
+	}
+
+	/* Kill Chrome's blue autofill fill — paint the window beige over it instead */
+	.field input:-webkit-autofill,
+	.field input:-webkit-autofill:hover,
+	.field input:-webkit-autofill:focus,
+	.field textarea:-webkit-autofill {
+		-webkit-text-fill-color: var(--ink);
+		-webkit-box-shadow: 0 0 0 1000px var(--window-bg) inset;
+		caret-color: var(--ink);
+	}
+
+	.field textarea {
+		resize: vertical;
+		min-height: 120px;
+	}
+
+	/* Slide-to-send */
+	.slider {
+		position: relative;
+		align-self: flex-start;
+		width: 100%;
+		max-width: 320px;
+		height: 48px;
+		margin-top: 4px;
+
+		border: 2px solid var(--window-border);
+		border-radius: 999px;
+		user-select: none;
+		touch-action: none;
+	}
+
+	.slider__label {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 14px;
+		color: var(--ink-muted);
+		pointer-events: none;
+	}
+
+	.slider__knob {
+		position: absolute;
+		top: 50%;
+		left: 3px;
+		transform: translateY(-50%);
+
+		width: 38px;
+		height: 38px;
+		border-radius: 50%;
+		background: var(--window-bar);
+		color: #fff;
+
+		display: grid;
+		place-items: center;
+		cursor: grab;
+		transition: left 0.2s ease;
+	}
+
+	.slider__knob:active {
+		cursor: grabbing;
+	}
+
+	.slider__knob svg {
+		width: 18px;
+		height: 18px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.slider.is-done .slider__label {
+		color: var(--window-bar);
+	}
+
+	.contact__error {
+		margin: 4px 0 0;
+		font-size: 14px;
+		color: var(--close-red);
+	}
+
+	/* Success state — animated checkmark + message */
+	.contact__success {
+		text-align: center;
+		padding: 16px 0;
+		animation: success-in 0.4s ease both;
+	}
+
+	@keyframes success-in {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	.contact__check {
+		width: 72px;
+		height: 72px;
+		display: block;
+		margin: 0 auto 14px;
+	}
+
+	.contact__check-circle {
+		fill: none;
+		stroke: #fff;
+		stroke-width: 3;
+		stroke-dasharray: 151;
+		stroke-dashoffset: 151;
+		animation: draw-circle 0.5s ease forwards;
+	}
+
+	.contact__check-mark {
+		fill: none;
+		stroke: #fff;
+		stroke-width: 4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-dasharray: 40;
+		stroke-dashoffset: 40;
+		animation: draw-mark 0.3s 0.45s ease forwards;
+	}
+
+	@keyframes draw-circle {
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	@keyframes draw-mark {
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	.contact__success-msg {
+		margin: 0;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	@media (max-width: 640px) {
+		.contact {
+			padding: 20px;
+		}
+	}
+</style>
+
+<script>
+	function wireSlider(slider: HTMLElement) {
+		const knob = slider.querySelector<HTMLElement>('.slider__knob');
+		const form = slider.closest('form') as HTMLFormElement | null;
+		if (!knob || !form) return;
+
+		const root = form.parentElement as HTMLElement;
+		const win = form.closest('.window') as HTMLElement | null;
+		const lead = root.querySelector<HTMLElement>('.contact__lead');
+		const success = root.querySelector<HTMLElement>('.contact__success');
+		const errorMsg = form.querySelector<HTMLElement>('.contact__error');
+
+		const minLeft = 3;
+		const maxLeft = () => slider.clientWidth - knob.offsetWidth - 3;
+		const setLeft = (x: number) => {
+			knob.style.left = `${x}px`;
+		};
+
+		let dragging = false;
+		let startX = 0;
+		let startLeft = minLeft;
+		let moved = 0;
+		let submitting = false;
+
+		// --- Custom field validation (replaces Chrome's native bubbles) ---
+		const fields = Array.from(form.querySelectorAll<HTMLElement>('.field'));
+
+		const fieldParts = (field: HTMLElement) => ({
+			input: field.querySelector<HTMLInputElement | HTMLTextAreaElement>('input, textarea'),
+			notice: field.querySelector<HTMLElement>('.field__notice'),
+		});
+
+		const noticeFor = (input: HTMLInputElement | HTMLTextAreaElement) => {
+			if (input.validity.valueMissing) return 'This field is required';
+			if (input.validity.typeMismatch) return 'Enter a valid email address';
+			return 'Please check this field';
+		};
+
+		const showNotice = (notice: HTMLElement, msg: string) => {
+			notice.textContent = msg;
+			if (notice.hidden) {
+				// First failure — appear instantly.
+				notice.hidden = false;
+			} else {
+				// Already up — hard off-and-on (no easing) to re-draw attention.
+				notice.hidden = true;
+				setTimeout(() => {
+					notice.hidden = false;
+				}, 90);
+			}
+		};
+
+		const hideNotice = (notice: HTMLElement) => {
+			notice.hidden = true;
+		};
+
+		const validate = () => {
+			let ok = true;
+			for (const field of fields) {
+				const { input, notice } = fieldParts(field);
+				if (!input || !notice) continue;
+				if (input.validity.valid) {
+					hideNotice(notice);
+				} else {
+					ok = false;
+					showNotice(notice, noticeFor(input));
+				}
+			}
+			return ok;
+		};
+
+		// Clear a field's notice the moment it becomes valid while typing.
+		for (const field of fields) {
+			const { input, notice } = fieldParts(field);
+			input?.addEventListener('input', () => {
+				if (notice && input.validity.valid) hideNotice(notice);
+			});
+		}
+
+		async function submit() {
+			if (submitting) return;
+
+			// Custom validation — flags empty/invalid fields with inline notices.
+			if (!validate()) {
+				setLeft(minLeft);
+				return;
+			}
+
+			submitting = true;
+			if (errorMsg) errorMsg.hidden = true;
+			setLeft(maxLeft());
+			slider.classList.add('is-done');
+
+			try {
+				// AJAX POST to Netlify — keeps us on the page.
+				const res = await fetch('/', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+					body: new URLSearchParams(new FormData(form!) as any).toString(),
+				});
+				if (!res.ok) throw new Error(`Bad response: ${res.status}`);
+
+				// Whole window goes green; form is replaced by the success message.
+				win?.classList.add('is-sent');
+				if (lead) lead.hidden = true;
+				form!.hidden = true;
+				if (success) success.hidden = false;
+			} catch (err) {
+				submitting = false;
+				slider.classList.remove('is-done');
+				setLeft(minLeft);
+				if (errorMsg) errorMsg.hidden = false;
+			}
+		}
+
+		knob.addEventListener('pointerdown', (e) => {
+			dragging = true;
+			moved = 0;
+			startX = e.clientX;
+			startLeft = knob.offsetLeft;
+			knob.style.transition = 'none';
+			knob.setPointerCapture(e.pointerId);
+		});
+
+		knob.addEventListener('pointermove', (e) => {
+			if (!dragging) return;
+			const dx = e.clientX - startX;
+			moved = Math.max(moved, Math.abs(dx));
+			setLeft(Math.max(minLeft, Math.min(startLeft + dx, maxLeft())));
+		});
+
+		const end = (e: PointerEvent) => {
+			if (!dragging) return;
+			dragging = false;
+			try {
+				knob.releasePointerCapture(e.pointerId);
+			} catch {}
+			knob.style.transition = '';
+
+			if (knob.offsetLeft >= maxLeft() * 0.85) {
+				submit();
+			} else if (moved < 6) {
+				// A tap, not a drag — nudge right then back to signal "drag me".
+				setLeft(minLeft + 26);
+				setTimeout(() => setLeft(minLeft), 180);
+			} else {
+				setLeft(minLeft);
+			}
+		};
+
+		knob.addEventListener('pointerup', end);
+		knob.addEventListener('pointercancel', end);
+
+		function resetForm() {
+			form!.reset();
+			form!.hidden = false;
+			if (lead) lead.hidden = false;
+			if (success) success.hidden = true;
+			if (errorMsg) errorMsg.hidden = true;
+			for (const field of fields) {
+				const { notice } = fieldParts(field);
+				if (notice) hideNotice(notice);
+			}
+			win?.classList.remove('is-sent');
+			slider.classList.remove('is-done');
+			setLeft(minLeft);
+			submitting = false;
+		}
+
+		// Reset back to the form once the window finishes closing, so reopening is
+		// fresh. Event-based (dispatched by the window manager) — no MutationObserver,
+		// so there's no risk of a self-triggering class-mutation loop.
+		win?.addEventListener('windowclosed', resetForm);
+		
+
+		// Enter / Space on the knob, or Enter in a field, both submit.
+		knob.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				submit();
+			}
+		});
+		form.addEventListener('submit', (e) => {
+			e.preventDefault();
+			submit();
+		});
+	}
+
+	function wireAllSliders() {
+		for (const slider of document.querySelectorAll<HTMLElement>('.slider')) {
+			if (slider.dataset.wired) continue;
+			slider.dataset.wired = '1';
+			wireSlider(slider);
+		}
+	}
+
+	document.addEventListener('astro:page-load', wireAllSliders);
+</script>

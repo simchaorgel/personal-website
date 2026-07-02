@@ -1,0 +1,32 @@
+---
+import IconDesktop from './IconDesktop.astro';
+import IconDetail from './IconDetail.astro';
+import type { IconDeskItem } from './IconDesktop.astro';
+import FavTweets from './favourites/FavTweets.astro';
+import FavBooks from './favourites/FavBooks.astro';
+import FavEssays from './favourites/FavEssays.astro';
+import twitterIcon from '../assets/favourites/icons/twitter.png';
+import bookIcon from '../assets/favourites/icons/books.jpg';
+
+// Grid icons. Each screen's body is its own component, wired explicitly below
+// (not mapped) since every favourite is a different layout.
+const favourites: IconDeskItem[] = [
+	{ id: 'tweets', title: 'Tweets', icon: twitterIcon },
+	{ id: 'books', title: 'Books', icon: bookIcon },
+	{ id: 'essays', title: 'Essays' },
+];
+---
+
+<IconDesktop items={favourites}>
+	<IconDetail id="tweets" title="Tweets" icon={twitterIcon} dark>
+		<FavTweets />
+	</IconDetail>
+
+	<IconDetail id="books" title="Books" icon={bookIcon}>
+		<FavBooks />
+	</IconDetail>
+
+	<IconDetail id="essays" title="Essays">
+		<FavEssays />
+	</IconDetail>
+</IconDesktop>

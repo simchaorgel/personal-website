@@ -1,0 +1,60 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Window from '../components/Window.astro';
+import DesktopIcon from '../components/DesktopIcon.astro';
+import Welcome from '../components/Welcome.astro';
+import Beliefs from '../components/Beliefs.astro';
+import Contact from '../components/Contact.astro';
+import Projects from '../components/Projects.astro';
+import Favourites from '../components/Favourites.astro';
+
+import welcomeIcon from '../assets/welcome.jpg';
+import picsIcon from '../assets/pics.jpg';
+import contactIcon from '../assets/contact6.jpg';
+import favouritesIcon from '../assets/favourites4.jpg';
+import projectsIcon from '../assets/projects7.png';
+import beliefsIcon from '../assets/socrates.jpg';
+---
+
+<Layout title="My Site">
+	<div class="desktop-icons">
+		<DesktopIcon label="Pics I've taken" icon={picsIcon} href="/photography" center={[-340, -185]} />
+		<DesktopIcon label="Welcome" icon={welcomeIcon} opens="welcome" center={[-110, 0]} />
+		<DesktopIcon label="About me" opens="about" center={[0, -230]} />
+		<DesktopIcon label="Big Ideas" icon={beliefsIcon} opens="ideas" center={[170, -230]} />
+		<DesktopIcon label="Hobbies" opens="hobbies" center={[365, -70]} />
+		<DesktopIcon label="Projects" icon={projectsIcon} opens="projects" center={[-360, 20]} />
+		<DesktopIcon label="Contact me" icon={contactIcon} opens="contact" center={[-430, 170]} />
+		<DesktopIcon label="Favourites" icon={favouritesIcon} opens="favourites" top="40px" right="40px" />
+	</div>
+
+	<Window id="welcome" title="Welcome" open persistent fullCenter>
+		<Welcome />
+	</Window>
+
+	<Window id="about" title="About me" width="min(820px, 92vw)" height="min(560px, 86vh)" maximizable>
+		<!-- content coming next -->
+	</Window>
+
+	<Window
+		id="ideas"
+		title="Big Ideas"
+		width="min(820px, 92vw)"
+		height="min(560px, 86vh)"
+		maximizable
+	>
+		<Beliefs />
+	</Window>
+
+	<Window id="contact" title="Contact me" width="min(620px, 92vw)" height="min(560px, 88vh)">
+		<Contact />
+	</Window>
+
+	<Window id="projects" title="Projects" width="min(860px, 92vw)" height="min(600px, 86vh)" maximizable>
+		<Projects />
+	</Window>
+
+	<Window id="favourites" title="Favourites" width="min(860px, 92vw)" height="min(600px, 86vh)" maximizable>
+		<Favourites />
+	</Window>
+</Layout>

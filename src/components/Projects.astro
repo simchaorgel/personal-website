@@ -1,0 +1,260 @@
+---
+import { Image } from 'astro:assets';
+import IconDesktop from './IconDesktop.astro';
+import IconDetail from './IconDetail.astro';
+import type { IconDeskItem } from './IconDesktop.astro';
+
+import mindchordIcon from '../assets/projects/icons/mindchord.png';
+import annaIcon from '../assets/projects/icons/anna.jpeg';
+import invokeIcon from '../assets/projects/icons/invoke.png';
+import thisIcon from '../assets/projects/icons/this.png';
+
+import mindchord1 from '../assets/projects/mindchord-1.jpg';
+import mindchord2 from '../assets/projects/mindchord-2.jpg';
+import mindchord3 from '../assets/projects/mindchord-3.jpg';
+import mindchord4 from '../assets/projects/mindchord-4.jpg';
+import mindchord5 from '../assets/projects/mindchord-5.jpg';
+
+import invoke1 from '../assets/projects/invoke-1.png';
+import invoke2 from '../assets/projects/invoke-2.png';
+import invoke3 from '../assets/projects/invoke-3.png';
+import invoke4 from '../assets/projects/invoke-4.png';
+
+// Shell data (icon grid + detail header) plus this window's own body fields.
+type Project = IconDeskItem & {
+	website?: string;
+	github?: string;
+	description?: string[];
+	stack?: string[];
+	images?: ImageMetadata[];
+};
+
+const projects: Project[] = [
+	{
+		id: 'mindchord',
+		title: 'Mindchord',
+		icon: mindchordIcon,
+		website: 'https://mindchord.net',
+		description: [
+			'Mindchord is a neurofeedback app designed to be used at home with portable EEG headsets to complete sessions set by clinicians using the Provider Console webapp.',
+			'The app connects to headsets including Muse and Neurosity devices, and provides feedback through video sessions or interactive sessions: In video feedback, the video playing gets brighter or darker depending on how well the user is doing, and in interactive feedback modes, the selected visualisation updates to represent doing well or badly.',
+			'Clinicians have the option to set two feedback bands (lo, hi, direction, z-score) and define a z-score for how far above or below baseline the user should be rewarded. Every session starts with a calibration period where the users current baselines for the feedback bands are measured.',
+		],
+		stack: ['Python', 'Brainflow', 'FastAPI', 'Jinja', 'HTML', 'Tailwind CSS', 'JS'],
+		images: [mindchord1, mindchord2, mindchord3, mindchord4, mindchord5],
+	},
+	{
+		id: 'annas-art-studio',
+		title: "Anna's Art Studio",
+		icon: annaIcon,
+		website: 'https://frabjous-paprenjak.netlify.app',
+		github: 'https://github.com/simchaorgel/anna-goldmeier-site',
+		description: [
+			"Anna's Art Studio is designed for Anna to showcase her paintings and events.",
+		],
+		stack: ['Astro', 'HTML', 'CSS', 'JS', 'Netlify'],
+	},
+	{
+		id: 'this-site',
+		title: 'this site',
+		icon: thisIcon,
+		description: [
+			"self explanatory",
+		],
+		stack: ['Astro', 'HTML', 'CSS', 'JS', 'Netlify'],
+	},
+	{
+		id: 'invoke',
+		title: 'Invoke Invoicer',
+		icon: invokeIcon,
+		description: [
+			"Invoke is an automatic invoicer designed for users who have regular recurring clients, such as therapists. It reads from the users Google Calendar and compares entries to the users Google Sheet 'users' table to classify which entries are user appointments. Running the program generates a PDF invoice for each client with appointment information based on how many times they showed up in the selected month (with reduced fees for cancelations), and uploads them to a folder in the users Google Drive.",
+		],
+		stack: ['Electron', 'Python', 'HTML', 'CSS', 'JS'],
+		images: [invoke1, invoke2, invoke3, invoke4]
+	},
+];
+---
+
+<IconDesktop items={projects}>
+	{
+		projects.map((p) => (
+			<IconDetail id={p.id} title={p.title} icon={p.icon}>
+				<div class="proj-body">
+					{(p.website || p.github) && (
+						<nav class="proj-links">
+							{p.website && (
+								<a class="proj-link" href={p.website} target="_blank" rel="noopener">
+									<svg class="proj-link__icon" viewBox="0 -960 960 960" aria-hidden="true">
+										<path d="M325-111.5q-73-31.5-127.5-86t-86-127.5Q80-398 80-480.5t31.5-155q31.5-72.5 86-127t127.5-86Q398-880 480.5-880t155 31.5q72.5 31.5 127 86t86 127Q880-563 880-480.5T848.5-325q-31.5 73-86 127.5t-127 86Q563-80 480.5-80T325-111.5ZM480-162q26-36 45-75t31-83H404q12 44 31 83t45 75Zm-104-16q-18-33-31.5-68.5T322-320H204q29 50 72.5 87t99.5 55Zm208 0q56-18 99.5-55t72.5-87H638q-9 38-22.5 73.5T584-178ZM170-400h136q-3-20-4.5-39.5T300-480q0-21 1.5-40.5T306-560H170q-5 20-7.5 39.5T160-480q0 21 2.5 40.5T170-400Zm216 0h188q3-20 4.5-39.5T580-480q0-21-1.5-40.5T574-560H386q-3 20-4.5 39.5T380-480q0 21 1.5 40.5T386-400Zm268 0h136q5-20 7.5-39.5T800-480q0-21-2.5-40.5T790-560H654q3 20 4.5 39.5T660-480q0 21-1.5 40.5T654-400Zm-16-240h118q-29-50-72.5-87T584-782q18 33 31.5 68.5T638-640Zm-234 0h152q-12-44-31-83t-45-75q-26 36-45 75t-31 83Zm-200 0h118q9-38 22.5-73.5T376-782q-56 18-99.5 55T204-640Z"></path>
+									</svg>
+									<span>Open website</span>
+									<svg class="proj-link__arrow" viewBox="0 0 12 12" aria-hidden="true">
+										<path d="M4 2 L8 6 L4 10" />
+									</svg>
+								</a>
+							)}
+							{p.github && (
+								<a class="proj-link" href={p.github} target="_blank" rel="noopener">
+									<svg class="proj-link__icon" viewBox="0 0 24 24" aria-hidden="true">
+										<path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path>
+									</svg>
+									<span>Open GitHub</span>
+									<svg class="proj-link__arrow" viewBox="0 0 12 12" aria-hidden="true">
+										<path d="M4 2 L8 6 L4 10" />
+									</svg>
+								</a>
+							)}
+						</nav>
+					)}
+
+					{p.description?.map((para) => (
+						<p>{para}</p>
+					))}
+
+					{p.stack && p.stack.length > 0 && (
+						<section class="proj-stack">
+							<h3 class="proj-subhead">Stack</h3>
+							<ul class="proj-stacklist">
+								{p.stack.map((s) => (
+									<li class="proj-chip">{s}</li>
+								))}
+							</ul>
+						</section>
+					)}
+
+					{p.images && p.images.length > 0 && (
+						<div class="proj-shots">
+							{p.images.map((img, i) => (
+								<Image src={img} alt={`${p.title} screenshot ${i + 1}`} class="proj-shot" />
+							))}
+						</div>
+					)}
+				</div>
+			</IconDetail>
+		))
+	}
+</IconDesktop>
+
+<style>
+	/* Website / GitHub buttons — a row at the top of the body, above the
+	   description. Owned by Projects (the only screen with links). */
+	.proj-links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		margin: 0 0 22px;
+	}
+
+	.proj-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 34px;
+		padding: 0 20px;
+		background: #33658a;
+		border: 2px solid var(--window-border);
+		border-radius: 8px;
+		color: #fff;
+		text-decoration: none;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 13px;
+		letter-spacing: 0.01em;
+		transition: filter 120ms ease;
+	}
+
+	.proj-link:hover {
+		filter: brightness(1.08);
+	}
+
+	.proj-link__icon {
+		width: 16px;
+		height: 16px;
+		flex: none;
+		display: block;
+		fill: currentColor;
+	}
+
+	/* Trailing chevron — stroked, nudges right on hover. */
+	.proj-link__arrow {
+		width: 12px;
+		height: 12px;
+		flex: none;
+		margin-left: 2px;
+		transition: transform 120ms ease;
+	}
+
+	.proj-link__arrow path {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.proj-link:hover .proj-link__arrow {
+		transform: translateX(2px);
+	}
+
+	.proj-body p {
+		margin: 0 0 14px;
+		font-family: var(--font-sans);
+		font-size: 16px;
+		line-height: 1.65;
+	}
+
+	/* Stack chips */
+	.proj-stack {
+		margin-top: 26px;
+	}
+
+	.proj-subhead {
+		margin: 0 0 12px;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	.proj-stacklist {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.proj-chip {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 13px;
+		letter-spacing: 0.01em;
+		color: #ece8d8;
+		background: var(--window-bar);
+		border-radius: 6px;
+		padding: 4px 10px;
+	}
+
+	/* Screenshot gallery — fixed-width columns, centred as a block; a lone image
+	   on the last row stays left-aligned with the column above it. */
+	.proj-shots {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, 320px);
+		justify-content: center;
+		gap: 14px;
+		margin-top: 28px;
+	}
+
+	.proj-shot {
+		width: 100%;
+		height: auto;
+		display: block;
+		border-radius: 5px;
+		border: 1px solid rgba(58, 58, 58, 0.15);
+	}
+
+	@media (max-width: 640px) {
+		.proj-shots {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

@@ -1,0 +1,314 @@
+---
+---
+
+<div class="shut" data-screen="ask">
+	<!-- Screen 1: confirm question + buttons -->
+	<section class="shut__screen" data-shut-screen="ask">
+		<p class="shut__lead">
+			Are you sure you would like to shutdown? This action may not be reversible.
+		</p>
+
+		<div class="actions">
+			<button class="btn btn--cancel" type="button" data-shutdown-cancel>Cancel</button>
+			<button class="btn btn--shutdown" type="button" data-shutdown-confirm>Shutdown</button>
+		</div>
+	</section>
+
+	<!-- Screen 2: slide-to-confirm -->
+	<section class="shut__screen" data-shut-screen="slide">
+		<div class="slider" aria-label="Confirm shutdown">
+			<span class="slider__label">Confirm shutdown</span>
+			<div class="slider__knob" role="button" tabindex="0" aria-label="Confirm shutdown">
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<path d="M5 12h14M13 6l6 6-6 6"></path>
+				</svg>
+			</div>
+		</div>
+	</section>
+</div>
+
+<style>
+	/* A clipped stage: the two screens are stacked absolutely and slide
+	   vertically. overflow:hidden clips whichever one is parked off-screen. */
+	.shut {
+		position: relative;
+		height: 100%;
+		overflow: hidden;
+		color: var(--ink);
+		font-family: var(--font-sans);
+	}
+
+	/* Each screen fills the stage (inset:0 gives it a definite height, so its
+	   content can still centre vertically) and animates by transform only. */
+	.shut__screen {
+		position: absolute;
+		inset: 0;
+		padding: 24px 28px;
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
+		transition: transform 900ms cubic-bezier(0.2, 0, 0, 1);
+	}
+
+	/* Active screen centred; advancing slides the new one up from the bottom
+	   while the old one slides up and out the top. */
+	.shut[data-screen='ask'] [data-shut-screen='ask'],
+	.shut[data-screen='slide'] [data-shut-screen='slide'] {
+		transform: translateY(0);
+	}
+
+	.shut[data-screen='ask'] [data-shut-screen='slide'] {
+		transform: translateY(100%);
+		pointer-events: none;
+	}
+
+	.shut[data-screen='slide'] [data-shut-screen='ask'] {
+		transform: translateY(-100%);
+		pointer-events: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.shut__screen {
+			transition: none;
+		}
+	}
+
+	.shut__lead {
+		margin: 0;
+		font-size: 16px;
+		line-height: 1.6;
+
+		/* Fill the space above the buttons and center the text vertically. */
+		flex: 1;
+		display: flex;
+		align-items: center;
+	}
+
+	.actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 12px;
+		margin-top: auto;
+		padding-top: 22px;
+	}
+
+	.btn {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 14px;
+		letter-spacing: 0.02em;
+		padding: 8px 18px;
+		border: 2px solid var(--window-border);
+		border-radius: 6px;
+		cursor: pointer;
+		transition: filter 120ms ease;
+	}
+
+	.btn:hover {
+		filter: brightness(1.06);
+	}
+
+	.btn:active {
+		filter: brightness(0.94);
+	}
+
+	.btn--cancel {
+		background: var(--window-bar);
+		color: #ece8d8;
+	}
+
+	.btn--shutdown {
+		background: var(--close-red);
+		color: #fff;
+	}
+
+	/* Slide-to-confirm (mirrors the contact form's slider) */
+	.slider {
+		position: relative;
+		/* auto margins absorb the free space → centered both axes in the screen. */
+		margin: auto;
+		width: 100%;
+		max-width: 320px;
+		height: 48px;
+
+		border: 2px solid var(--window-border);
+		border-radius: 999px;
+		user-select: none;
+		touch-action: none;
+
+		transition: background-color 200ms ease, border-color 200ms ease;
+	}
+
+	.slider__label {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 14px;
+		color: var(--ink-muted);
+		pointer-events: none;
+	}
+
+	.slider__knob {
+		position: absolute;
+		top: 50%;
+		left: 3px;
+		transform: translateY(-50%);
+
+		width: 38px;
+		height: 38px;
+		border-radius: 50%;
+		background: var(--close-red);
+		color: #fff;
+
+		display: grid;
+		place-items: center;
+		cursor: grab;
+		transition: left 0.2s ease;
+	}
+
+	.slider__knob:active {
+		cursor: grabbing;
+	}
+
+	.slider__knob svg {
+		width: 18px;
+		height: 18px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.slider.is-done {
+		background: var(--close-red);
+		border-color: var(--close-red);
+	}
+
+	.slider.is-done .slider__knob {
+		background: var(--close-red);
+		color: #fff;
+	}
+</style>
+
+<script>
+	function wireShutdown(root: HTMLElement) {
+		const ask = root.querySelector<HTMLElement>('[data-shut-screen="ask"]');
+		const slide = root.querySelector<HTMLElement>('[data-shut-screen="slide"]');
+		const win = root.closest('.window') as HTMLElement | null;
+		if (!ask || !slide) return;
+
+		const closeWindow = () =>
+			root.dispatchEvent(new CustomEvent('windowclose', { bubbles: true }));
+
+		const showScreen = (name: 'ask' | 'slide') => {
+			root.dataset.screen = name;
+		};
+
+		// Screen 1 buttons
+		root
+			.querySelector<HTMLButtonElement>('[data-shutdown-cancel]')
+			?.addEventListener('click', closeWindow);
+		root
+			.querySelector<HTMLButtonElement>('[data-shutdown-confirm]')
+			?.addEventListener('click', () => showScreen('slide'));
+
+		// --- Slide-to-confirm knob (same mechanics as the contact slider) ---
+		const slider = slide.querySelector<HTMLElement>('.slider');
+		const knob = slide.querySelector<HTMLElement>('.slider__knob');
+
+		const minLeft = 3;
+		const maxLeft = () => (slider!.clientWidth - knob!.offsetWidth - 3);
+		const setLeft = (x: number) => {
+			knob!.style.left = `${x}px`;
+		};
+
+		let dragging = false;
+		let startX = 0;
+		let startLeft = minLeft;
+		let moved = 0;
+		let done = false;
+
+		if (slider && knob) {
+			knob.addEventListener('pointerdown', (e) => {
+				if (done) return;
+				dragging = true;
+				moved = 0;
+				startX = e.clientX;
+				startLeft = knob.offsetLeft;
+				knob.style.transition = 'none';
+				knob.setPointerCapture(e.pointerId);
+			});
+
+			knob.addEventListener('pointermove', (e) => {
+				if (!dragging) return;
+				const dx = e.clientX - startX;
+				moved = Math.max(moved, Math.abs(dx));
+				setLeft(Math.max(minLeft, Math.min(startLeft + dx, maxLeft())));
+			});
+
+			const end = (e: PointerEvent) => {
+				if (!dragging) return;
+				dragging = false;
+				try {
+					knob.releasePointerCapture(e.pointerId);
+				} catch {}
+				knob.style.transition = '';
+
+				if (knob.offsetLeft >= maxLeft() * 0.85) {
+					shutdown();
+				} else if (moved < 6) {
+					// A tap, not a drag — nudge to hint "drag me".
+					setLeft(minLeft + 26);
+					setTimeout(() => setLeft(minLeft), 180);
+				} else {
+					setLeft(minLeft);
+				}
+			};
+
+			knob.addEventListener('pointerup', end);
+			knob.addEventListener('pointercancel', end);
+
+			knob.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					shutdown();
+				}
+			});
+		}
+
+		function shutdown() {
+			if (done) return;
+			done = true;
+			slider?.classList.add('is-done');
+			setLeft(maxLeft());
+
+			// Reveal the in-session shutdown overlay (spinner; lives in the shell).
+			document.documentElement.setAttribute('data-shutdown', '');
+
+			// Persist the shut-down state for 5h. On the next load the head script
+			// reads this and paints the boot screen instantly (stage 2).
+			document.cookie = 'shutdown=1; max-age=18000; path=/; samesite=lax';
+		}
+
+		// Reset to the first screen once the window finishes closing, so reopening
+		// is fresh. Event-based (dispatched by the window manager) — no observer.
+		win?.addEventListener('windowclosed', () => {
+			showScreen('ask');
+			done = false;
+			slider?.classList.remove('is-done');
+			setLeft(minLeft);
+		});
+	}
+
+	function wireAllShutdown() {
+		for (const root of document.querySelectorAll<HTMLElement>('.shut')) {
+			if (root.dataset.shutWired) continue;
+			root.dataset.shutWired = '1';
+			wireShutdown(root);
+		}
+	}
+
+	document.addEventListener('astro:page-load', wireAllShutdown);
+</script>

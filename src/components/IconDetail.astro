@@ -1,0 +1,185 @@
+---
+import { Image } from 'astro:assets';
+
+// One detail panel for an IconDesktop: the shared shell (back button, header
+// icon, title, links) plus a default <slot> for the consumer's body content.
+interface Props {
+	id: string;
+	title: string;
+	icon?: ImageMetadata;
+	/** Dark panel: black background + white heading (e.g. the Tweets screen). */
+	dark?: boolean;
+}
+
+const { id, title, icon, dark = false } = Astro.props;
+---
+
+<article class="icondesk__detail" data-detail={id} data-dark={dark ? '' : undefined} hidden>
+	<header class="icondesk__head">
+		<button class="icondesk__back" type="button" data-back aria-label="Back">
+			<svg class="icondesk__backarrow" viewBox="0 0 12 12" aria-hidden="true">
+				<path d="M7.5 2 L3.5 6 L7.5 10" />
+			</svg>
+		</button>
+		<span class="icondesk__head-icon">
+			{
+				icon && (
+					<Image
+						src={icon}
+						alt=""
+						width={80}
+						height={80}
+						loading="eager"
+						class="icondesk__head-icon-img"
+					/>
+				)
+			}
+		</span>
+		<h2 class="icondesk__title">{title}</h2>
+	</header>
+	<div class="icondesk__body">
+		<slot />
+	</div>
+</article>
+
+<style>
+	.icondesk__detail {
+		position: absolute;
+		inset: 0;
+		overflow-y: auto;
+		box-sizing: border-box;
+		padding: 24px 36px 40px;
+		background: var(--window-bg);
+		color: var(--ink);
+
+		scrollbar-width: thin;
+		scrollbar-color: rgba(58, 58, 58, 0.3) transparent;
+	}
+
+	/* `display` would override [hidden]; re-assert it. */
+	.icondesk__detail[hidden] {
+		display: none;
+	}
+
+	.icondesk__detail::-webkit-scrollbar {
+		width: 10px;
+	}
+
+	.icondesk__detail::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.icondesk__detail::-webkit-scrollbar-thumb {
+		background: rgba(58, 58, 58, 0.3);
+		border-radius: 999px;
+		border: 3px solid transparent;
+		background-clip: padding-box;
+	}
+
+	.icondesk__head {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		margin-bottom: 28px;
+	}
+
+	/* Taskbar-style square button: blue fill, olive border, white chevron. */
+	.icondesk__back {
+		flex: none;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		background: #33658a;
+		border: 3px solid var(--window-border);
+		border-radius: 8px;
+		color: #fff;
+		cursor: pointer;
+		transition: filter 120ms ease;
+	}
+
+	.icondesk__back:hover {
+		filter: brightness(1.08);
+	}
+
+	.icondesk__backarrow {
+		width: 16px;
+		height: 16px;
+	}
+
+	.icondesk__backarrow path {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.icondesk__head-icon {
+		flex: none;
+		width: 40px;
+		height: 40px;
+		border-radius: 9px;
+		overflow: hidden;
+		border: 2px solid var(--window-border);
+		background: var(--window-bg);
+	}
+
+	.icondesk__head-icon-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+
+	/* The flying clone during the open/close morph — above the panel, opaque. */
+	.icondesk__head-icon--ghost {
+		position: absolute;
+		z-index: 5;
+		transform-origin: top left;
+		pointer-events: none;
+	}
+
+	.icondesk__title {
+		margin: 0;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 24px;
+		font-weight: 600;
+	}
+
+	/* Dark variant — black panel with white heading. The body content's own
+	   colours are the consumer's responsibility. */
+	.icondesk__detail[data-dark] {
+		background: #000;
+		scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+	}
+
+	.icondesk__detail[data-dark] .icondesk__title {
+		color: #fff;
+	}
+
+	.icondesk__detail[data-dark] .icondesk__head-icon {
+		border-color: rgba(255, 255, 255, 0.25);
+		background: #1a1a1a;
+	}
+
+	.icondesk__detail[data-dark]::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.3);
+		border: 3px solid transparent;
+		background-clip: padding-box;
+	}
+
+	/* Consumers fill this slot with their own (scoped) body markup + styles. */
+	.icondesk__body {
+		padding-left: 10px;
+		padding-right: 10px;
+	}
+
+	@media (max-width: 640px) {
+		.icondesk__detail {
+			padding: 18px 20px 28px;
+		}
+	}
+</style>

@@ -1,0 +1,77 @@
+---
+---
+
+<div class="info">
+	<p>
+		This is my personal website. The site works like a desktop – click an icon
+		to open a window, and press
+		<span class="key-close" role="img" aria-label="close button">
+			<svg viewBox="0 0 10 10" aria-hidden="true">
+				<path d="M2 2 L8 8 M8 2 L2 8"></path>
+			</svg>
+		</span>
+		or <kbd>esc</kbd> to close them.
+	</p>
+	<p>Whatever you do, do not press the shutdown button in the taskbar.</p>
+	<p>
+		This site was created by myself along with Claude.ai. Design is mostly my own, writing is fully mine (yes I use em dashes sometimes), and the code is mostly Claude's.
+		Heavily inspired by <a href="https://www.behance.net/gallery/229665053/Web-Portfolio-2" class="link" target="_blank" rel="noopener">this site</a>.
+	</p>
+</div>
+
+<style>
+	.info {
+		padding: 24px 28px;
+		color: var(--ink);
+		font-family: var(--font-sans);
+	}
+
+	.info p {
+		margin: 0 0 14px;
+		font-size: 16px;
+		line-height: 1.6;
+	}
+
+	.info p:last-child {
+		margin-bottom: 0;
+	}
+
+	kbd {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 12px;
+		background: rgba(58, 58, 58, 0.1);
+		border: 1px solid rgba(58, 58, 58, 0.2);
+		border-radius: 4px;
+		padding: 1px 5px;
+	}
+
+	/* Inline mini close-button, matching the real window control */
+	.key-close {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		/* center on the text line, with breathing room either side */
+		vertical-align: middle;
+		position: relative;
+		top: -1px;
+		width: 18px;
+		height: 18px;
+		margin: 0 3px;
+
+		background: var(--close-red);
+		border: 2px solid #fff;
+		border-radius: 3px;
+	}
+
+	.key-close svg {
+		width: 8px;
+		height: 8px;
+		display: block;
+	}
+
+	.key-close svg path {
+		stroke: #fff;
+		stroke-width: 2;
+		stroke-linecap: round;
+	}
+</style>

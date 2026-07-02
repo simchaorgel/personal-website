@@ -1,0 +1,405 @@
+/* Slide between desktops. Forward (default): the new desktop enters from the
+   right, pushing the old one out to the left. */
+@keyframes vt-slide-out-left {
+	to {
+		transform: translateX(-100%);
+	}
+}
+@keyframes vt-slide-in-right {
+	from {
+		transform: translateX(100%);
+	}
+}
+@keyframes vt-slide-out-right {
+	to {
+		transform: translateX(100%);
+	}
+}
+@keyframes vt-slide-in-left {
+	from {
+		transform: translateX(-100%);
+	}
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+	/* Safety net: never let a momentarily-blank snapshot flash white */
+	background-color: var(--beige);
+}
+
+::view-transition-old(root) {
+	animation: 380ms cubic-bezier(0.4, 0, 0.2, 1) both vt-slide-out-left;
+}
+::view-transition-new(root) {
+	animation: 380ms cubic-bezier(0.4, 0, 0.2, 1) both vt-slide-in-right;
+}
+
+/* Back (returning home): reverse — new enters from the left, old pushed right.
+   Astro sets data-astro-transition on <html> based on navigation direction. */
+:root[data-astro-transition='back']::view-transition-old(root) {
+	animation-name: vt-slide-out-right;
+}
+:root[data-astro-transition='back']::view-transition-new(root) {
+	animation-name: vt-slide-in-left;
+}
+
+/* Keep the taskbar perfectly still during navigations: no slide, and no
+   cross-fade (which would dip its opacity since it's already translucent). */
+::view-transition-group(taskbar) {
+	animation: none;
+}
+::view-transition-old(taskbar) {
+	animation: none;
+	opacity: 0;
+}
+::view-transition-new(taskbar) {
+	animation: none;
+	opacity: 1;
+}
+
+/* ---- Theme tokens (shared across every desktop) ---- */
+:root {
+	--beige: #ede4d3;
+	--grid-line: #d8cbb3;
+	--box-size: 40px;
+	--line-thickness: 3px;
+
+	/* Window surface */
+	--window-bg: var(--beige); /* same as the desktop background */
+	--window-border: #3a3a3a;
+	--window-bar: #566246;
+	--close-red: #e1443a;
+
+	/* Text */
+	--ink: #3a3a3a;
+	--ink-muted: #857c68;
+
+	/* Type — the reading sans (Hanken Grotesk, self-hosted via Fontsource and
+	   imported in the Layout). The Variable family name is what Fontsource ships. */
+	--font-sans: 'Hanken Grotesk Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+	/* The reading serif (Newsreader, self-hosted via Fontsource). Used for
+	   long-form reading text like the Big Ideas page. */
+	--font-serif: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+
+	/* Layout */
+	--taskbar-h: 58px;
+}
+
+/* ---- Reset ---- */
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+/* Base reading font; mono UI elements opt back into monospace explicitly. */
+body {
+	font-family: var(--font-sans);
+}
+
+/* ---- Content links ----
+   Opt-in: add class="link" to any prose link you want styled. */
+.link {
+	color: var(--window-bar);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	text-decoration-thickness: 1px;
+}
+
+.link:hover {
+	text-decoration-thickness: 2px;
+}
+
+/* ---- Desktop background ---- */
+/* On <html> (the view-transition root) so navigations never flash white. */
+html {
+	min-height: 100vh;
+	background-color: var(--beige);
+	/* Grid drawn with two repeating linear gradients */
+	background-image:
+		linear-gradient(to right, var(--grid-line) var(--line-thickness), transparent var(--line-thickness)),
+		linear-gradient(to bottom, var(--grid-line) var(--line-thickness), transparent var(--line-thickness));
+	background-size: var(--box-size) var(--box-size);
+	/* Center the tiling so a cell sits in the middle of the viewport */
+	background-position: center center;
+}
+
+/* ---- Shutdown overlay ----
+   Full-screen black screen with a spinner + message. Hidden until
+   `data-shutdown` is set on <html> — by the shutdown slider now, and (later) by
+   a render-blocking head script on reload, so it can appear with no flash. */
+.shutdown {
+	position: fixed;
+	inset: 0;
+	z-index: 9999; /* above the taskbar (10) and all windows (20+) */
+	background: #000;
+	display: grid;
+	justify-items: center;
+	align-items: start;
+
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 600ms ease;
+}
+
+html[data-shutdown] .shutdown {
+	opacity: 1;
+	visibility: visible;
+}
+
+.shutdown__inner {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 22px;
+	opacity: 0;
+
+	/* Sit above centre — between the top and the middle of the screen. */
+	margin-top: 32vh;
+}
+
+/* Timeline (total 9s): hold black for ~1s, snap the spinner + message on, hold
+   them for a while, then snap them off (no fade) leaving pure black. The
+   steps(1, end) timing functions make the on/off instant rather than animated. */
+html[data-shutdown] .shutdown__inner {
+	animation: shutdown-cycle 9s forwards;
+}
+
+@keyframes shutdown-cycle {
+	0% {
+		opacity: 0;
+		animation-timing-function: steps(1, end);
+	}
+	11% {
+		opacity: 0;
+		animation-timing-function: steps(1, end);
+	}
+	12% {
+		opacity: 1;
+	}
+	98% {
+		opacity: 1;
+		animation-timing-function: steps(1, end);
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+.shutdown__spinner {
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	border: 4px solid rgba(255, 255, 255, 0.18);
+	border-top-color: rgba(255, 255, 255, 0.9);
+	animation: shutdown-spin 0.9s linear infinite;
+}
+
+@keyframes shutdown-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.shutdown__msg {
+	margin: 0;
+	font-family: var(--font-sans);
+	font-size: 16px;
+	letter-spacing: 0.01em;
+	color: #d6d6d6;
+}
+
+/* ---- Boot screen (stage 2) ----
+   Shown on reload when the site is in its shut-down state. Separate overlay
+   from `.shutdown` because it gets its own content. `data-booting` is set by a
+   render-blocking head script *before first paint*, so it's black instantly
+   (display:none → block, with no transition to animate). Content TBD. */
+.boot {
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 9999; /* above the taskbar (10) and all windows (20+) */
+	background: #000;
+}
+
+html[data-booting] .boot {
+	display: grid;
+	place-items: center;
+}
+
+.boot__line {
+	margin: 0;
+	padding: 0 24px;
+	text-align: center;
+	font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+	font-size: 18px;
+	letter-spacing: 0.01em;
+	color: #d6d6d6;
+}
+
+/* ---- "Restart complete!" dialog ----
+   A deliberate Windows Vista / 7 (Aero) pastiche shown at the end of the boot
+   sequence. Evocative, not pixel-exact. */
+.aero {
+	width: min(400px, 90vw);
+	border-radius: 8px 8px 6px 6px;
+	overflow: hidden;
+	font-family: 'Segoe UI', Tahoma, Geneva, sans-serif;
+	color: #1c2430;
+
+	background: linear-gradient(#eaf1f9, #d6e2f0);
+	border: 1px solid #6f8eb0;
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+		0 18px 50px rgba(0, 0, 0, 0.55);
+
+	animation: aero-in 200ms ease both;
+}
+
+/* `display` would override [hidden]; the dialog is plain block, so this is just
+   belt-and-braces. */
+.aero[hidden] {
+	display: none;
+}
+
+@keyframes aero-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* Glassy title bar */
+.aero__bar {
+	display: flex;
+	align-items: center;
+	height: 30px;
+	padding: 0 6px 0 10px;
+	background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(223, 235, 248, 0.55));
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.aero__title {
+	flex: 1;
+	font-size: 12px;
+	color: #2b3b4d;
+	text-shadow: 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+.aero__cap {
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 19px;
+	padding: 0;
+	font-size: 11px;
+	color: #33405a;
+
+	border: 1px solid rgba(140, 155, 175, 0.85);
+	border-radius: 3px;
+	background: linear-gradient(rgba(255, 255, 255, 0.95), rgba(216, 228, 242, 0.75));
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+	cursor: pointer;
+}
+
+.aero__cap--close:hover {
+	color: #fff;
+	border-color: #a52f2f;
+	background: linear-gradient(#f08a8a, #d23b3b);
+}
+
+.aero__cap--close:active {
+	background: linear-gradient(#d23b3b, #b22a2a);
+}
+
+/* Body */
+.aero__body {
+	padding: 22px 22px 16px;
+	background: linear-gradient(#fbfdff, #eef3f8);
+}
+
+.aero__content {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.aero__icon {
+	flex: none;
+	width: 40px;
+	height: 40px;
+}
+
+.aero__msg {
+	margin: 0;
+	font-size: 15px;
+}
+
+.aero__actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 22px;
+	padding-top: 14px;
+	border-top: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+/* Default (focused) Aero button — light blue tint with a soft outer glow. */
+.aero__ok {
+	min-width: 90px;
+	padding: 5px 14px;
+	font-family: inherit;
+	font-size: 13px;
+	color: #14304f;
+
+	border: 1px solid #5b7ba6;
+	border-radius: 4px;
+	background: linear-gradient(#fcfeff, #e2eefb);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.9),
+		0 0 7px 1px rgba(70, 145, 235, 0.55);
+	cursor: pointer;
+}
+
+.aero__ok:hover {
+	background: linear-gradient(#eaf6ff, #c8e3ff);
+}
+
+.aero__ok:active {
+	background: linear-gradient(#cfe6ff, #aad0ff);
+}
+
+/* The Projects/Favourites windows scroll internally (their desktop and detail
+   panels each manage their own overflow), so the body shouldn't reserve
+   scrollbar gutters — that reserved space reads as side padding pushing the
+   panel/scrollbar inward. */
+#projects .window-body,
+#favourites .window-body {
+	overflow: hidden;
+	scrollbar-gutter: auto;
+}
+
+/* ---- Mobile: scattered desktop icons collapse into a simple grid ---- */
+@media (max-width: 640px) {
+	.desktop-icons {
+		position: fixed;
+		inset: 0 0 var(--taskbar-h) 0;
+		padding: 24px;
+
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+		gap: 20px;
+		align-content: start;
+		justify-items: center;
+	}
+
+	/* Override the per-icon inline positioning so they flow into the grid */
+	.desktop-icon {
+		position: static !important;
+		transform: none !important;
+	}
+}
