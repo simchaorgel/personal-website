@@ -19,14 +19,12 @@ const covers = Object.entries(modules)
 
 	{
 		covers.length > 0 && (
-			<div class="books__case">
-				<div class="books__gallery">
-					{covers.map((cover, i) => (
-						<span class="books__book">
-							<Image src={cover} alt={`Book cover ${i + 1}`} class="books__cover" />
-						</span>
-					))}
-				</div>
+			<div class="books__gallery">
+				{covers.map((cover, i) => (
+					<span class="books__book">
+						<Image src={cover} alt={`Book cover ${i + 1}`} class="books__cover" />
+					</span>
+				))}
 			</div>
 		)
 	}
@@ -41,98 +39,21 @@ const covers = Object.entries(modules)
 		color: var(--ink-muted);
 	}
 
-	/* ---- Wooden bookcase (skeuomorphic, à la iBooks) ----
-
-	   The CASE is the outer frame: a warm wood gradient with an SVG fractal-noise
-	   grain blended in (soft-light), rounded corners, and bevel/drop shadows so it
-	   reads as a raised cabinet. Its padding forms the side posts + top rail. */
-	.books__case {
-		--wood-grain-v: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='v'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72 0.02' numOctaves='4' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23v)'/%3E%3C/svg%3E");
-
-		position: relative;
-		margin-top: 26px;
-		padding: 32px 24px 24px; /* extra top rail = headroom above the first row */
-		border-radius: 14px;
-		overflow: hidden;
-
-		background-image: var(--wood-grain-v), linear-gradient(180deg, #d9aa63, #bf8842);
-		background-size: 260px 260px, auto;
-		background-blend-mode: soft-light, normal;
-
-		box-shadow:
-			0 16px 34px rgba(0, 0, 0, 0.42), /* the cabinet's drop shadow */
-			inset 0 2px 0 rgba(255, 255, 255, 0.4), /* top bevel highlight */
-			inset 0 -5px 9px rgba(0, 0, 0, 0.35), /* bottom rail shadow */
-			inset 7px 0 12px -7px rgba(0, 0, 0, 0.3), /* left post shading */
-			inset -7px 0 12px -7px rgba(0, 0, 0, 0.3); /* right post shading */
-	}
-
-	/* The INTERIOR (back wall + shelves). Every cover is a uniform height
-	   (--cover-h), so rows are exactly that tall — which lets the shelves be a
-	   *repeating* background (on ::before) that lands under each row and re-flows at
-	   any width, no JS. Background here = the recessed back-wall wood; the shelves
-	   sit on top via ::before; the books sit on top of that. */
+	/* A plain gallery of covers on the window's beige — uniform height rows
+	   (bottom-aligned, like books standing together), soft shadows for lift. */
 	.books__gallery {
 		--cover-h: 200px;
-		/* Row gap holds each shelf plank (~36px incl. its shadow) PLUS the headroom
-		   above the row beneath it — so bump it well past the plank height. */
-		--shelf-gap: 62px;
-		--wood-grain-h: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='h'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02 0.72' numOctaves='4' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23h)'/%3E%3C/svg%3E");
 
-		position: relative;
+		margin-top: 30px;
 		display: flex;
 		flex-wrap: wrap;
 		align-items: flex-end;
 		column-gap: 26px;
-		row-gap: var(--shelf-gap);
-		/* No top pad: keeps shelves aligned to rows. No bottom pad: the last row's
-		   plank falls at the box edge and is clipped away, so the bottom row rests on
-		   the cabinet floor (the case's bottom rail) instead of a floating shelf. */
-		padding: 0 6px;
-		border-radius: 5px;
-
-		background-image: var(--wood-grain-h), linear-gradient(180deg, #a5722e, #855a26);
-		background-size: 260px 260px, auto;
-		background-blend-mode: soft-light, normal;
-
-		/* Recess the interior into the frame. */
-		box-shadow:
-			inset 0 0 0 2px rgba(0, 0, 0, 0.22),
-			inset 0 11px 20px rgba(0, 0, 0, 0.45),
-			inset 0 -6px 14px rgba(0, 0, 0, 0.3);
+		row-gap: 34px;
+		padding: 0 4px 10px;
 	}
 
-	/* The shelves themselves — a repeating plank drawn beneath each row: a bright
-	   bullnose along the top edge falling to a dark front lip, then a cast shadow
-	   into the recess below. */
-	.books__gallery::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		z-index: 0;
-		pointer-events: none;
-		border-radius: inherit;
-		background-image: repeating-linear-gradient(
-			to bottom,
-			transparent 0,
-			transparent var(--cover-h),
-			rgba(0, 0, 0, 0.32) var(--cover-h), /* contact line where books meet shelf */
-			#f2d497 calc(var(--cover-h) + 1px), /* lit bullnose */
-			#e0b26c calc(var(--cover-h) + 3px),
-			#cc9a51 calc(var(--cover-h) + 9px), /* front face */
-			#a5763c calc(var(--cover-h) + 17px),
-			#6e4a22 calc(var(--cover-h) + 23px), /* dark front lip */
-			rgba(0, 0, 0, 0.4) calc(var(--cover-h) + 24px), /* cast shadow into recess */
-			rgba(0, 0, 0, 0) calc(var(--cover-h) + 36px),
-			transparent calc(var(--cover-h) + var(--shelf-gap))
-		);
-	}
-
-	/* Books sit above the shelf layer. Flat, front-facing (like the reference), with
-	   a soft grounding shadow so they rest on the shelf. */
 	.books__book {
-		position: relative;
-		z-index: 1;
 		display: block;
 		height: var(--cover-h);
 	}
@@ -141,21 +62,18 @@ const covers = Object.entries(modules)
 		display: block;
 		width: auto;
 		height: 100%;
-		border-radius: 1px 3px 3px 1px;
+		border-radius: 2px;
 		box-shadow:
-			0 1px 2px rgba(0, 0, 0, 0.45), /* edge definition */
-			0 9px 11px -5px rgba(0, 0, 0, 0.55); /* grounding shadow onto the shelf */
+			0 0 0 1px rgba(58, 58, 58, 0.22),
+			0 7px 10px -5px rgba(58, 58, 58, 0.4);
 	}
 
 	@media (max-width: 640px) {
-		.books__case {
-			padding: 16px 16px 18px;
-		}
-
 		.books__gallery {
-			--cover-h: 150px;
-			--shelf-gap: 36px;
-			column-gap: 18px;
+			--cover-h: 148px;
+			column-gap: 16px;
+			row-gap: 26px;
+			padding: 0 2px 8px;
 		}
 	}
 </style>

@@ -373,12 +373,13 @@ html[data-booting] .boot {
 	background: linear-gradient(#cfe6ff, #aad0ff);
 }
 
-/* The Projects/Favourites windows scroll internally (their desktop and detail
-   panels each manage their own overflow), so the body shouldn't reserve
-   scrollbar gutters — that reserved space reads as side padding pushing the
-   panel/scrollbar inward. */
+/* The Projects/Favourites/Photos windows scroll internally (their desktop,
+   detail and viewer panels each manage their own overflow), so the body
+   shouldn't reserve scrollbar gutters — that reserved space reads as side
+   padding pushing the panel/scrollbar inward. */
 #projects .window-body,
-#favourites .window-body {
+#favourites .window-body,
+#photos .window-body {
 	overflow: hidden;
 	scrollbar-gutter: auto;
 }

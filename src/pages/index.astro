@@ -7,6 +7,7 @@ import Beliefs from '../components/Beliefs.astro';
 import Contact from '../components/Contact.astro';
 import Projects from '../components/Projects.astro';
 import Favourites from '../components/Favourites.astro';
+import Photography from '../components/Photography.astro';
 
 import welcomeIcon from '../assets/welcome.jpg';
 import picsIcon from '../assets/pics.jpg';
@@ -18,7 +19,7 @@ import beliefsIcon from '../assets/socrates.jpg';
 
 <Layout title="My Site">
 	<div class="desktop-icons">
-		<DesktopIcon label="Pics I've taken" icon={picsIcon} href="/photography" center={[-340, -185]} />
+		<DesktopIcon label="Pics I've taken" icon={picsIcon} opens="photos" center={[-340, -185]} />
 		<DesktopIcon label="Welcome" icon={welcomeIcon} opens="welcome" center={[-110, 0]} />
 		<DesktopIcon label="About me" opens="about" center={[0, -230]} />
 		<DesktopIcon label="Big Ideas" icon={beliefsIcon} opens="ideas" center={[170, -230]} />
@@ -56,5 +57,9 @@ import beliefsIcon from '../assets/socrates.jpg';
 
 	<Window id="favourites" title="Favourites" width="min(860px, 92vw)" height="min(600px, 86vh)" maximizable>
 		<Favourites />
+	</Window>
+
+	<Window id="photos" title="Pics I've taken" width="min(1100px, 94vw)" height="min(720px, 88vh)" maximizable>
+		<Photography />
 	</Window>
 </Layout>

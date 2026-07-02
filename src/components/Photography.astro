@@ -1,0 +1,438 @@
+---
+import { Image, getImage } from 'astro:assets';
+
+// Auto-loads every photo in src/assets/photos/ — drop an image in that folder
+// (named so it sorts where you want) and it shows up here.
+const modules = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/photos/*.{jpg,jpeg,png,webp,avif}',
+	{ eager: true },
+);
+const photos = Object.entries(modules)
+	.sort(([a], [b]) => a.localeCompare(b))
+	.map(([, m]) => m.default);
+
+// A pre-optimised large variant per photo for the viewer — the multi-MB
+// originals never ship; the grid uses small thumbs, the viewer these.
+const larges = await Promise.all(
+	photos.map((p) => getImage({ src: p, width: 1600, format: 'webp' })),
+);
+
+// Blur-up placeholders: a ~24px version behind each thumb (a few hundred
+// bytes) that the browser's upscaling naturally blurs; the real thumbnail
+// paints over it when it loads.
+const tinies = await Promise.all(
+	photos.map((p) => getImage({ src: p, width: 24, format: 'webp' })),
+);
+---
+
+<div class="photos" data-view="grid">
+	<!-- Contact sheet: square thumbs, chronological (filename order). -->
+	<div class="photos__grid">
+		{
+			photos.map((p, i) => (
+				<button
+					class="photos__cell"
+					type="button"
+					data-full={larges[i].src}
+					aria-label={`Open photo ${i + 1}`}
+				>
+					<Image
+					src={p}
+					alt=""
+					width={640}
+					loading="lazy"
+					class="photos__thumb"
+					style={`background-image: url(${tinies[i].src})`}
+				/>
+				</button>
+			))
+		}
+	</div>
+
+	<!-- Viewer: one photo large on black, layered over the grid. -->
+	<div class="photos__viewer" hidden>
+		<img class="photos__full" alt="" />
+
+		<button class="photos__back" type="button" aria-label="Back to grid">
+			<svg viewBox="0 0 12 12" aria-hidden="true">
+				<path d="M7.5 2 L3.5 6 L7.5 10" />
+			</svg>
+		</button>
+
+		<button class="photos__nav photos__nav--prev" type="button" aria-label="Previous photo">
+			<svg viewBox="0 0 12 12" aria-hidden="true">
+				<path d="M7.5 2 L3.5 6 L7.5 10" />
+			</svg>
+		</button>
+		<button class="photos__nav photos__nav--next" type="button" aria-label="Next photo">
+			<svg viewBox="0 0 12 12" aria-hidden="true">
+				<path d="M4.5 2 L8.5 6 L4.5 10" />
+			</svg>
+		</button>
+	</div>
+</div>
+
+<script>
+	// Grid ↔ viewer switching. Bound on astro:page-load (ClientRouter swaps the
+	// DOM) and idempotent via data-wired.
+	const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	function setupPhotos() {
+		for (const root of document.querySelectorAll<HTMLElement>('.photos')) {
+			if (root.dataset.wired) continue;
+			root.dataset.wired = '1';
+
+			const cells = [...root.querySelectorAll<HTMLButtonElement>('.photos__cell')];
+			const viewer = root.querySelector<HTMLElement>('.photos__viewer');
+			const full = root.querySelector<HTMLImageElement>('.photos__full');
+			if (!viewer || !full || cells.length === 0) continue;
+
+			let index = -1;
+			let seq = 0; // stamps each swap so a rapid keypress cancels a slower one
+
+			// Warm the cache for a neighbour so prev/next feels instant.
+			const preload = (i: number) => {
+				const src = cells[(i + cells.length) % cells.length]?.dataset.full;
+				if (src) new Image().src = src;
+			};
+
+			// Swap the displayed photo. dir: +1 next / -1 prev (slide), 0 open (pop).
+			const swap = async (i: number, dir: number) => {
+				index = (i + cells.length) % cells.length;
+				const src = cells[index].dataset.full ?? '';
+				const my = ++seq;
+
+				if (!reduceMotion && dir !== 0 && full.src) {
+					await full.animate(
+						[
+							{ opacity: 1, transform: 'none' },
+							{ opacity: 0, transform: `translateX(${-16 * dir}px)` },
+						],
+						{ duration: 90, easing: 'ease-in' },
+					).finished;
+					if (my !== seq) return;
+				}
+
+				// Hold the img invisible from before the src swap until the enter
+				// animation's first frame: the browser may paint the new photo (or
+				// keep painting the old one) in the gap while it decodes, which
+				// showed as a full-opacity flicker before the fade-in restarted.
+				if (!reduceMotion) full.style.opacity = '0';
+
+				full.src = src;
+				try {
+					await full.decode(); // animate in only once it can actually paint
+				} catch {}
+				if (my !== seq) return;
+
+				if (!reduceMotion) {
+					const enter = full.animate(
+						dir === 0
+							? [
+									{ opacity: 0, transform: 'scale(0.96)' },
+									{ opacity: 1, transform: 'none' },
+								]
+							: [
+									{ opacity: 0, transform: `translateX(${16 * dir}px)` },
+									{ opacity: 1, transform: 'none' },
+								],
+						{ duration: dir === 0 ? 200 : 130, easing: 'ease-out' },
+					);
+					enter.onfinish = () => {
+						full.style.opacity = '';
+					};
+				} else {
+					full.style.opacity = '';
+				}
+
+				preload(index + 1);
+				preload(index - 1);
+			};
+
+			const openViewer = (i: number) => {
+				viewer.hidden = false;
+				root.dataset.view = 'viewer';
+				if (!reduceMotion) {
+					viewer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+				}
+				swap(i, 0);
+			};
+
+			const closeViewer = () => {
+				if (viewer.hidden) return;
+				index = -1;
+				seq++;
+				const finish = () => {
+					viewer.hidden = true;
+					root.dataset.view = 'grid';
+					full.removeAttribute('src'); // no stale photo flash on reopen
+					full.style.opacity = '';
+				};
+				if (reduceMotion) return finish();
+				viewer.animate([{ opacity: 1 }, { opacity: 0 }], {
+					duration: 120,
+					easing: 'ease-in',
+				}).onfinish = finish;
+			};
+
+			// The full img's element box spans the whole viewer (its letterbox is
+			// part of the element), so "clicked the black background" needs a
+			// hit-test against the actual contained photo rectangle.
+			const clickedOutsidePhoto = (e: MouseEvent) => {
+				const r = full.getBoundingClientRect();
+				const cs = getComputedStyle(full);
+				const cw = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+				const ch = r.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+				const nw = full.naturalWidth;
+				const nh = full.naturalHeight;
+				if (!nw || !nh) return true;
+				const s = Math.min(cw / nw, ch / nh);
+				const x = r.left + parseFloat(cs.paddingLeft) + (cw - nw * s) / 2;
+				const y = r.top + parseFloat(cs.paddingTop) + (ch - nh * s) / 2;
+				return (
+					e.clientX < x || e.clientX > x + nw * s || e.clientY < y || e.clientY > y + nh * s
+				);
+			};
+
+			cells.forEach((cell, i) => cell.addEventListener('click', () => openViewer(i)));
+			viewer.querySelector('.photos__back')?.addEventListener('click', closeViewer);
+			viewer.querySelector('.photos__nav--prev')?.addEventListener('click', () => swap(index - 1, -1));
+			viewer.querySelector('.photos__nav--next')?.addEventListener('click', () => swap(index + 1, 1));
+
+			// Click on the black backdrop (incl. the letterbox) → back to the grid.
+			viewer.addEventListener('click', (e) => {
+				if (e.target === viewer || (e.target === full && clickedOutsidePhoto(e))) closeViewer();
+			});
+
+			// Keyboard, only while the viewer is up. Capture phase so Esc reaches us
+			// *before* the Layout's document-level Esc (which would close the whole
+			// window) — here it just steps back to the grid. The isConnected guard
+			// keeps a stale listener from a previous navigation inert.
+			document.addEventListener(
+				'keydown',
+				(e) => {
+					if (!root.isConnected || viewer.hidden) return;
+					if (e.key === 'Escape') {
+						e.stopPropagation();
+						closeViewer();
+					} else if (e.key === 'ArrowRight') {
+						swap(index + 1, 1);
+					} else if (e.key === 'ArrowLeft') {
+						swap(index - 1, -1);
+					}
+				},
+				{ capture: true },
+			);
+
+			// Closing the window resets to the grid, like the nested desktops do.
+			root.closest('.window')?.addEventListener('windowclosed', closeViewer);
+		}
+	}
+
+	document.addEventListener('astro:page-load', setupPhotos);
+</script>
+
+<style>
+	/* Stage — grid and viewer are absolute layers inside it (the window body's
+	   own scrolling is disabled for #photos in global.css, like the nested
+	   desktops). */
+	.photos {
+		position: relative;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	.photos__grid {
+		position: absolute;
+		inset: 0;
+		overflow-y: auto;
+		box-sizing: border-box;
+		padding: 14px;
+
+		display: grid;
+		/* Column floor scales with the viewport so a maximized window grows the
+		   cells instead of just packing in more small columns. */
+		grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 10.5vw, 205px), 1fr));
+		gap: 10px;
+		align-content: start;
+
+		scrollbar-width: thin;
+		scrollbar-color: rgba(58, 58, 58, 0.3) transparent;
+	}
+
+	.photos__grid::-webkit-scrollbar {
+		width: 10px;
+	}
+
+	.photos__grid::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.photos__grid::-webkit-scrollbar-thumb {
+		background: rgba(58, 58, 58, 0.3);
+		border-radius: 999px;
+		border: 3px solid transparent;
+		background-clip: padding-box;
+	}
+
+	/* Square via the padding-bottom trick (% padding resolves against width),
+	   with the img absolutely filling the box. NOT aspect-ratio: Chromium's
+	   special <button> layout won't grow the button around an aspect-ratio
+	   child, which collapsed the cells to strips. */
+	.photos__cell {
+		position: relative;
+		height: 0;
+		padding: 0 0 100%;
+		border: none;
+		border-radius: 4px;
+		overflow: hidden;
+		background: var(--grid-line);
+		cursor: pointer;
+		transition: box-shadow 120ms ease, filter 120ms ease;
+	}
+
+	.photos__cell:hover {
+		filter: brightness(1.05);
+		box-shadow: 0 0 0 3px rgba(106, 122, 78, 0.35); /* olive ring, like icon hover */
+	}
+
+	.photos__thumb {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+		/* The blur-up placeholder (inline background-image) sits behind the
+		   photo until it loads. */
+		background-size: cover;
+		background-position: center;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.photos__thumb {
+			transition: transform 200ms ease;
+		}
+
+		.photos__cell:hover .photos__thumb {
+			transform: scale(1.05);
+		}
+	}
+
+	/* ---- Viewer ---- */
+	.photos__viewer {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		background: #000;
+	}
+
+	/* `display` would fight [hidden] if this ever becomes flex/grid; keep it
+	   explicit either way. */
+	.photos__viewer[hidden] {
+		display: none;
+	}
+
+	.photos__full {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		box-sizing: border-box;
+		padding: 18px 78px;
+	}
+
+	/* Taskbar-blue square, same as the nested desktops' back button. */
+	.photos__back {
+		position: absolute;
+		top: 16px;
+		left: 16px;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		background: #33658a;
+		border: 3px solid var(--window-border);
+		border-radius: 8px;
+		color: #fff;
+		cursor: pointer;
+		transition: filter 120ms ease;
+	}
+
+	.photos__back:hover {
+		filter: brightness(1.08);
+	}
+
+	.photos__back svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	/* Prev/next — quiet dark chips at the sides. */
+	.photos__nav {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		background: rgba(28, 28, 28, 0.75);
+		border: 2px solid rgba(255, 255, 255, 0.25);
+		border-radius: 8px;
+		color: #fff;
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease;
+	}
+
+	.photos__nav:hover {
+		background: rgba(48, 48, 48, 0.85);
+		border-color: rgba(255, 255, 255, 0.45);
+	}
+
+	.photos__nav--prev {
+		left: 16px;
+	}
+
+	.photos__nav--next {
+		right: 16px;
+	}
+
+	.photos__nav svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.photos__back svg path,
+	.photos__nav svg path {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	@media (max-width: 640px) {
+		.photos__grid {
+			grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+			gap: 8px;
+			padding: 10px;
+		}
+
+		/* Arrows drop to the bottom corners so they don't sit on the photo. */
+		.photos__full {
+			padding: 12px 12px 74px;
+		}
+
+		.photos__nav {
+			top: auto;
+			bottom: 14px;
+			transform: none;
+		}
+	}
+</style>
