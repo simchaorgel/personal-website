@@ -91,6 +91,9 @@
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
+	/* Chrome-on-Android paints a blue flash over tapped interactive elements;
+	   our buttons have their own hover/active styling. */
+	-webkit-tap-highlight-color: transparent;
 }
 
 /* Base reading font; mono UI elements opt back into monospace explicitly. */
@@ -402,5 +405,23 @@ html[data-booting] .boot {
 	.desktop-icon {
 		position: static !important;
 		transform: none !important;
+	}
+
+	/* The fixed-height shell windows don't fit their content on a narrow
+	   screen (Info's text wraps taller; Welcome stacks into a column) — let
+	   them size to content, capped to the space above the taskbar. */
+	#welcome,
+	#info {
+		height: auto;
+		max-height: calc(100dvh - var(--taskbar-h) - 32px);
+	}
+
+	/* Contact opens near-fullscreen on phones (same geometry as maximizable
+	   windows) while keeping its compact desktop size. */
+	#contact {
+		top: 8px !important;
+		left: 8px !important;
+		width: calc(100vw - 16px) !important;
+		height: calc(100dvh - var(--taskbar-h) - 16px) !important;
 	}
 }

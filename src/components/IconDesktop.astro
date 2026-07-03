@@ -138,6 +138,9 @@ const { items } = Astro.props;
 	@media (max-width: 640px) {
 		.icondesk__grid {
 			padding: 20px;
+			/* Center the column tracks as a block; rows still fill left-to-right,
+			   so a lone icon on the last row stays left-aligned. */
+			justify-content: center;
 		}
 	}
 </style>
