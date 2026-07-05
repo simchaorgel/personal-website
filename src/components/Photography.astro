@@ -97,12 +97,13 @@ const tinies = await Promise.all(
 			};
 
 			// Swap the displayed photo. dir: +1 next / -1 prev (slide), 0 open (pop).
-			const swap = async (i: number, dir: number) => {
+			// skipExit: the outgoing animation already happened (finger swipe).
+			const swap = async (i: number, dir: number, skipExit = false) => {
 				index = (i + cells.length) % cells.length;
 				const src = cells[index].dataset.full ?? '';
 				const my = ++seq;
 
-				if (!reduceMotion && dir !== 0 && full.src) {
+				if (!reduceMotion && dir !== 0 && !skipExit && full.src) {
 					await full.animate(
 						[
 							{ opacity: 1, transform: 'none' },
@@ -201,43 +202,92 @@ const tinies = await Promise.all(
 
 			// Click on the black backdrop (incl. the letterbox) → back to the grid.
 			viewer.addEventListener('click', (e) => {
-				if (swiped) {
-					swiped = false;
+				if (suppressClick) {
+					suppressClick = false;
 					return;
 				}
 				if (e.target === viewer || (e.target === full && clickedOutsidePhoto(e))) closeViewer();
 			});
 
-			// Touch swipe -> prev/next. Track a touch pointer across the viewer; a
-			// horizontal drag past the threshold navigates (swipe left = next,
-			// following the photo off-screen). The swipe ends in a synthetic `click`,
-			// so suppress that one click to keep the backdrop handler from closing.
-			const SWIPE_MIN = 45; // px horizontal to count as a swipe
-			let swipeX = 0;
-			let swipeY = 0;
-			let swiping = false;
-			let swiped = false;
+			// Touch swipe → prev/next. The photo follows the finger; releasing past
+			// the threshold commits (the drag continues off-screen and the next
+			// photo slides in), otherwise it springs back. Requires `touch-action:
+			// none` on the viewer — without it the browser claims the horizontal
+			// gesture as a native pan and fires pointercancel, so the swipe never
+			// completes. Touch pointers implicitly capture to the element the finger
+			// lands on, so these bubbling listeners keep receiving moves even when
+			// the finger wanders off the viewer.
+			const SWIPE_MIN = 60; // px of horizontal travel to commit
+			const DRAG_START = 8; // px before it counts as a drag rather than a tap
+			let touchId = -1;
+			let fromX = 0;
+			let fromY = 0;
+			let dragX = 0;
+			let dragging = false;
+			let suppressClick = false;
 
 			viewer.addEventListener('pointerdown', (e) => {
-				if (e.pointerType !== 'touch') return;
-				swiping = true;
-				swiped = false;
-				swipeX = e.clientX;
-				swipeY = e.clientY;
+				// Finger swipes only, and not ones starting on the buttons.
+				if (e.pointerType !== 'touch' || !e.isPrimary) return;
+				if ((e.target as HTMLElement).closest('button')) return;
+				touchId = e.pointerId;
+				fromX = e.clientX;
+				fromY = e.clientY;
+				dragX = 0;
+				dragging = false;
 			});
 
-			viewer.addEventListener('pointerup', (e) => {
-				if (!swiping) return;
-				swiping = false;
-				const dx = e.clientX - swipeX;
-				const dy = e.clientY - swipeY;
-				// Horizontal must dominate, and clear the threshold.
-				if (Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy)) {
-					swiped = true;
-					if (dx < 0) swap(index + 1, 1);
-					else swap(index - 1, -1);
+			viewer.addEventListener('pointermove', (e) => {
+				if (e.pointerId !== touchId) return;
+				const dx = e.clientX - fromX;
+				const dy = e.clientY - fromY;
+				if (!dragging) {
+					// Wait until the gesture is clearly horizontal.
+					if (Math.abs(dx) < DRAG_START || Math.abs(dx) < Math.abs(dy)) return;
+					dragging = true;
+					seq++; // invalidate any in-flight swap…
+					for (const a of full.getAnimations()) a.cancel(); // …and its animations
 				}
+				dragX = dx;
+				full.style.transform = `translateX(${dx}px)`;
+				full.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 480));
 			});
+
+			const endSwipe = async (e: PointerEvent, cancelled: boolean) => {
+				if (e.pointerId !== touchId) return;
+				touchId = -1;
+				if (!dragging) return;
+				dragging = false;
+				suppressClick = true; // the release also fires a click on the backdrop
+
+				if (!cancelled && Math.abs(dragX) > SWIPE_MIN) {
+					const dir = dragX < 0 ? 1 : -1; // swipe left → next
+					if (!reduceMotion) {
+						await full.animate(
+							[
+								{ transform: `translateX(${dragX}px)` },
+								{ transform: `translateX(${dragX - dir * 90}px)`, opacity: 0 },
+							],
+							{ duration: 110, easing: 'ease-in' },
+						).finished;
+					}
+					full.style.transform = '';
+					swap(index + dir, dir, true); // the drag was the exit animation
+				} else {
+					// Didn't clear the bar (or the browser cancelled) — spring back.
+					if (!reduceMotion) {
+						full.animate([{ transform: `translateX(${dragX}px)` }, { transform: 'none' }], {
+							duration: 150,
+							easing: 'ease-out',
+						});
+					}
+					full.style.transform = '';
+					full.style.opacity = '';
+				}
+			};
+
+			viewer.addEventListener('pointerup', (e) => void endSwipe(e, false));
+			viewer.addEventListener('pointercancel', (e) => void endSwipe(e, true));
 
 			// Keyboard, only while the viewer is up. Capture phase so Esc reaches us
 			// *before* the Layout's document-level Esc (which would close the whole
@@ -360,6 +410,9 @@ const tinies = await Promise.all(
 		inset: 0;
 		z-index: 2;
 		background: #000;
+		/* Keep the browser from claiming horizontal touch drags as native pans —
+		   without this, swipes die in a pointercancel before pointerup fires. */
+		touch-action: none;
 	}
 
 	/* `display` would fight [hidden] if this ever becomes flex/grid; keep it
