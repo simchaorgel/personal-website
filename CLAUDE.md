@@ -1,8 +1,7 @@
 This is a personal website built to feel like a little desktop operating system: a beige
-gridded "desktop", clickable icons that open draggable **windows**, a bottom **taskbar**, and
-multiple "desktops" you navigate between with sliding page transitions. It's intentionally
-playful and bespoke — the aesthetic is hand-tuned element by element, so favour taste and
-iteration over generic UI patterns.
+gridded "desktop", clickable icons that open draggable **windows**, and a bottom **taskbar**.
+It's intentionally playful and bespoke — the aesthetic is hand-tuned element by element, so
+favour taste and iteration over generic UI patterns.
 
 This doc is an orientation, not a rulebook. It explains how the pieces fit together and the
 sharp edges we've already hit, so you can move fast without relearning them painfully. Where
@@ -29,7 +28,10 @@ changes.
 - **Astro + TypeScript**, mostly static. No backend (contact form posts to Netlify).
 - **`<ClientRouter />`** (Astro view transitions) gives SPA-style navigation between desktops,
   with a directional slide and a taskbar that stays put.
-- Each **"desktop" is a page** (`src/pages/*.astro`) wrapped in a shared `Layout`.
+- Each **"desktop" is a page** (`src/pages/*.astro`) wrapped in a shared `Layout`. The site is
+  currently **single-desktop** (just `index.astro` — a separate photography page was folded
+  into a window), but the multi-desktop machinery (slides, nav-direction script, `href` icons)
+  is all still live if another desktop ever earns its keep.
 - The desktop surface = scattered **desktop icons** + **windows** + the **taskbar**.
 
 ## Project map
@@ -42,9 +44,9 @@ src/
                            nav-direction + boot scripts, AND the generic window-management
                            <script> (so the window system works on every desktop).
   pages/
-    index.astro            The home desktop. Lays out icons + its windows (Welcome, About,
-                           Beliefs, Contact, Projects, Favourites…).
-    photography.astro      A second desktop (placeholder for now).
+    index.astro            The home desktop (currently the only one). Lays out icons + its
+                           windows (Welcome, About, Beliefs, Contact, Projects, Favourites,
+                           Photos…).
   components/
     Window.astro           The window *chrome*: title bar, close/maximize, drag, maximize.
                            Props: title, id, open, persistent, maximizable, fullCenter,
@@ -60,6 +62,8 @@ src/
                            shutdown overlay and sets the boot cookie.
     Projects.astro         Nested-desktop windows (data + per-item detail bodies), built on
     Favourites.astro       IconDesktop/IconDetail. See "Nested-desktop windows".
+    Photography.astro      The photos window: contact-sheet grid → in-window dark viewer.
+                           See "The photos window".
     IconDesktop.astro      Reusable nested desktop: icon grid + icon-morph + a slot per item.
     IconDetail.astro       Shared detail-panel shell (back/icon/title/links) + a body slot.
     favourites/            Per-screen Favourites bodies (FavTweets/FavBooks/FavEssays), each
@@ -68,6 +72,8 @@ src/
                            background, view-transition slides, the shutdown/boot/Aero overlay
                            styles, and mobile overrides.
   assets/projects/, assets/favourites/   Images (imported + optimized via astro:assets).
+  assets/photos/           The photo gallery. Auto-globbed (like favourites/books/): drop a
+                           file in, named so it sorts chronologically (IMG_YYYYMMDD_…).
 public/                    Static files served as-is (favicon, /me.jpg, tick.svg…).
 ```
 
@@ -132,6 +138,20 @@ uniform so it maps them; Favourites' screens differ wildly, so each is its own c
 in the `items` array (drives the grid) and on its `<IconDetail>` (drives the header) — keep them
 in sync.
 
+## The photos window
+
+`Photography.astro` is a self-contained two-state window: a **contact sheet** (square thumbs,
+fluid grid) and a **viewer** (one photo large on black, prev/next + arrow keys, click the
+letterbox to close, Esc steps back to the grid *before* the Layout's Esc can close the window —
+via a `capture`-phase keydown that stops propagation). Notes that matter when touching it:
+
+- Photos are auto-globbed from `assets/photos/`; filename order = display order.
+- Three build variants per photo: 640px thumb (lazy), 1600px webp for the viewer (originals
+  never ship), and a ~24px blur-up placeholder inlined as the thumb's `background-image`.
+- Neighbouring viewer images are preloaded, and src swaps hold the img at `opacity: 0` until
+  `decode()` resolves — otherwise the browser paints a one-frame full-opacity flash.
+- `#photos` joins the nested-desktop windows in global.css's "body scrolls internally" rule.
+
 ## The shutdown → reload "boot" experience
 
 Pulling the Shutdown window's slider shows a full-screen black overlay (spinner, "Shutting
@@ -161,9 +181,11 @@ Astro `<script>` runs after paint and reintroduces the flash. The overlays + Aer
 ## Mobile
 
 A `@media (max-width: 640px)` layer adapts things: scattered icons collapse into a simple grid,
-non-default windows open near-fullscreen, the Welcome card shrinks. Note icons position
-themselves with *inline* styles, so the mobile grid overrides them with `!important`. Mobile is
-only roughly tuned — expect to iterate on a real device.
+`maximizable` windows (plus Contact, via a global.css override) open near-fullscreen, the
+Welcome card stacks into a centered column, and Welcome/Info get `height: auto` so they fit
+their content. Note icons position themselves with *inline* styles, so the mobile grid
+overrides them with `!important`. Mobile is only roughly tuned — expect to iterate on a real
+device.
 
 ## Sharp edges we've already hit
 
@@ -186,6 +208,13 @@ only roughly tuned — expect to iterate on a real device.
 - **Lazy images in `display:none` panels flicker on first reveal.** A detail panel's header
   icon is hidden until opened, so it isn't loaded when the first morph clones it → a one-time
   flicker. Fix: `loading="eager"` on icons that animate in.
+- **`aspect-ratio` doesn't size `<button>`s.** Chromium's special button layout ignores it on
+  the button *and* won't grow the button around an aspect-ratio child (the photo cells
+  collapsed to strips). Use the `height: 0; padding-bottom: 100%` box with an absolutely
+  positioned child instead.
+- **`~` in asset filenames breaks Vite's fs-allow check** → 500s from `/_image` in dev
+  ("outside of Vite serving allow list" for a file that's plainly inside the project). Rename
+  the file; Android's `…copied-media~2.jpg` dedup names are how it happened here.
 
 ## Working style
 

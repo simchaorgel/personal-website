@@ -201,7 +201,42 @@ const tinies = await Promise.all(
 
 			// Click on the black backdrop (incl. the letterbox) → back to the grid.
 			viewer.addEventListener('click', (e) => {
+				if (swiped) {
+					swiped = false;
+					return;
+				}
 				if (e.target === viewer || (e.target === full && clickedOutsidePhoto(e))) closeViewer();
+			});
+
+			// Touch swipe -> prev/next. Track a touch pointer across the viewer; a
+			// horizontal drag past the threshold navigates (swipe left = next,
+			// following the photo off-screen). The swipe ends in a synthetic `click`,
+			// so suppress that one click to keep the backdrop handler from closing.
+			const SWIPE_MIN = 45; // px horizontal to count as a swipe
+			let swipeX = 0;
+			let swipeY = 0;
+			let swiping = false;
+			let swiped = false;
+
+			viewer.addEventListener('pointerdown', (e) => {
+				if (e.pointerType !== 'touch') return;
+				swiping = true;
+				swiped = false;
+				swipeX = e.clientX;
+				swipeY = e.clientY;
+			});
+
+			viewer.addEventListener('pointerup', (e) => {
+				if (!swiping) return;
+				swiping = false;
+				const dx = e.clientX - swipeX;
+				const dy = e.clientY - swipeY;
+				// Horizontal must dominate, and clear the threshold.
+				if (Math.abs(dx) > SWIPE_MIN && Math.abs(dx) > Math.abs(dy)) {
+					swiped = true;
+					if (dx < 0) swap(index + 1, 1);
+					else swap(index - 1, -1);
+				}
 			});
 
 			// Keyboard, only while the viewer is up. Capture phase so Esc reaches us

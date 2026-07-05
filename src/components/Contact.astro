@@ -46,6 +46,10 @@
 			<textarea name="message" rows="4" required></textarea>
 		</label>
 
+		<p class="contact__error" hidden role="alert">
+			There was an error sending your message :(. Please email me directly
+		</p>
+
 		<div class="slider" aria-label="Send message">
 			<span class="slider__label">Send message</span>
 			<div class="slider__knob" role="button" tabindex="0" aria-label="Send message">
@@ -54,10 +58,6 @@
 				</svg>
 			</div>
 		</div>
-
-		<p class="contact__error" hidden role="alert">
-			There was an error sending your message :(. Please email me directly
-		</p>
 	</form>
 
 	<div class="contact__success" hidden>
@@ -227,7 +227,7 @@
 	}
 
 	.contact__error {
-		margin: 4px 0 0;
+		margin: 0;
 		font-size: 14px;
 		color: var(--close-red);
 	}
