@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Window from '../components/Window.astro';
 import DesktopIcon from '../components/DesktopIcon.astro';
 import Welcome from '../components/Welcome.astro';
+import About from '../components/About.astro';
 import Beliefs from '../components/Beliefs.astro';
 import Contact from '../components/Contact.astro';
 import Projects from '../components/Projects.astro';
@@ -18,7 +19,7 @@ import beliefsIcon from '../assets/socrates.jpg';
 import aboutIcon from '../assets/about1.jpg';
 ---
 
-<Layout title="My Site">
+<Layout>
 	<div class="desktop-icons">
 		<DesktopIcon label="Pics I've taken" icon={picsIcon} opens="photos" center={[-340, -185]} />
 		<DesktopIcon label="Welcome" icon={welcomeIcon} opens="welcome" center={[-110, 0]} />
@@ -34,7 +35,7 @@ import aboutIcon from '../assets/about1.jpg';
 	</Window>
 
 	<Window id="about" title="About me" width="min(820px, 92vw)" height="min(560px, 86vh)" maximizable>
-		<!-- content coming next -->
+		<About />
 	</Window>
 
 	<Window
