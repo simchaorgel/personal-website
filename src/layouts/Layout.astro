@@ -98,16 +98,18 @@ const { title = 'My Site' } = Astro.props;
 	// Boot messages, shown in order.
 	const BOOT_LINES = [
 		'Connecting to server…',
-		'Connecting to Gmail…',
-		'Connecting to Claude, chatGPT, Gemini, and Grok…',
-		'Disconnecting from Grok…',
-		'Connecting to Pangram…',
 		'Connecting to Pterodactyl.ai…',
 		'Connecting to ploosh.ai…',
 		'Connecting to zorch.app…',
 		'Connecting to lunch.dev…',
 		'Connecting to br.io…',
 		'Connecting to klurshtu.com…',
+		'Connecting to fooj.net…',
+		'Connecting to brudj.app…',
+		'Connecting to thinko.ai',
+		'Connecting to truffle.dev',
+		'Connecting to sprosh.ai',
+		'Connecting to woq.application',
 	];
 
 	const BOOT_INITIAL_MS = 4000; // black before the first line appears
@@ -173,6 +175,10 @@ const { title = 'My Site' } = Astro.props;
 	// swaps the DOM) and is idempotent via `data-wired` markers.
 	const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+	// Phone-sized screens get a slightly different Welcome behaviour — see
+	// isPersistent(). Live (not cached) so a resize/rotate is respected.
+	const phoneScreen = () => matchMedia('(max-width: 640px)').matches;
+
 	const CLOSE_MS = 150;
 	const CLOSE_EASE = 'cubic-bezier(0.55, 0, 0.85, 0.35)'; // ease-in
 
@@ -231,6 +237,12 @@ const { title = 'My Site' } = Astro.props;
 	}
 
 	function isPersistent(win: HTMLElement) {
+		// On phone screens the Welcome window drops its persistence and behaves
+		// like any other window: it still opens by default as a greeting, but the
+		// first icon tap replaces it (single-window rule) and Home/Esc close it —
+		// so it stops permanently covering the desktop icons. Desktop keeps it
+		// persistent (there's room for it there).
+		if (win.id === 'welcome' && phoneScreen()) return false;
 		return win.hasAttribute('data-persistent');
 	}
 
