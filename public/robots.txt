@@ -1,0 +1,5 @@
+# Allow all crawlers full access.
+User-agent: *
+Allow: /
+
+Sitemap: https://simchaorgel.net/sitemap-index.xml

@@ -10,9 +10,14 @@ import Shutdown from '../components/Shutdown.astro';
 
 interface Props {
 	title?: string;
+	description?: string;
 }
 
-const { title = 'Simcha O' } = Astro.props;
+const { title = 'Simcha O', description = 'my personal website' } = Astro.props;
+
+// Absolute URLs for canonical + social tags (Astro.site comes from astro.config).
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL('/OG.png', Astro.site);
 ---
 
 <html lang="en">
@@ -28,9 +33,28 @@ const { title = 'Simcha O' } = Astro.props;
 			}
 		</script>
 		<link rel="icon" href="/favicon4.png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="generator" content={Astro.generator} />
+		<meta name="theme-color" content="#ede4d3" />
 		<title>{title}</title>
+		<meta name="description" content={description} />
+		<link rel="canonical" href={canonical} />
+
+		<!-- Open Graph (Facebook, LinkedIn, iMessage, Slack…) -->
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Simcha O" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content={ogImage} />
+
+		<!-- Twitter/X card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
+
 		<ClientRouter />
 	</head>
 	<body>

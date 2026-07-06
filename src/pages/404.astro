@@ -1,0 +1,180 @@
+---
+// Standalone page — deliberately NOT wrapped in the desktop Layout, so there's
+// no grid, no icons, no taskbar. Just a black screen with an OS-style error
+// dialog. global.css is imported only for the theme tokens/fonts.
+import '@fontsource-variable/hanken-grotesk';
+import '../styles/global.css';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="robots" content="noindex" />
+		<link rel="icon" href="/favicon4.png" />
+		<title>404 — Not found</title>
+	</head>
+	<body>
+		<main class="screen">
+			<div class="dialog" role="alertdialog" aria-labelledby="err-code" aria-describedby="err-msg">
+				<div class="dialog__bar">
+					<span class="dialog__title">Error</span>
+					<a class="dialog__x" href="/" aria-label="Close">
+						<svg viewBox="0 0 10 10" aria-hidden="true">
+							<path d="M2 2 L8 8 M8 2 L2 8" />
+						</svg>
+					</a>
+				</div>
+
+				<div class="dialog__body">
+					<div class="dialog__main">
+						<svg class="dialog__icon" viewBox="0 0 48 48" aria-hidden="true">
+							<circle cx="24" cy="24" r="22" />
+							<path d="M16 16 L32 32 M32 16 L16 32" />
+						</svg>
+						<div class="dialog__text">
+							<p id="err-code" class="dialog__code">404</p>
+							<p id="err-msg" class="dialog__msg">This page could not be found.</p>
+						</div>
+					</div>
+
+					<div class="dialog__actions">
+						<a class="dialog__ok" href="/">Back to home</a>
+					</div>
+				</div>
+			</div>
+		</main>
+	</body>
+</html>
+
+<style>
+	/* Full black screen — override the beige grid that global.css puts on html. */
+	:global(html),
+	:global(body) {
+		background: #000;
+	}
+
+	.screen {
+		position: fixed;
+		inset: 0;
+		background: #000;
+		display: grid;
+		place-items: center;
+		padding: 20px;
+	}
+
+	.dialog {
+		width: min(430px, 92vw);
+		background: var(--window-bg);
+		border: 3px solid var(--window-border);
+		border-radius: 14px;
+		overflow: hidden;
+		box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+	}
+
+	.dialog__bar {
+		height: 38px;
+		background: var(--window-bar);
+		border-bottom: 3px solid var(--window-border);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 8px 0 12px;
+	}
+
+	.dialog__title {
+		color: #ece8d8;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 16px;
+		letter-spacing: 0.02em;
+	}
+
+	.dialog__x {
+		width: 20px;
+		height: 20px;
+		display: grid;
+		place-items: center;
+		background: var(--close-red);
+		border: 2px solid #fff;
+		border-radius: 3px;
+	}
+
+	.dialog__x svg {
+		width: 10px;
+		height: 10px;
+	}
+
+	.dialog__x path {
+		stroke: #fff;
+		stroke-width: 2;
+		stroke-linecap: round;
+	}
+
+	.dialog__body {
+		padding: 24px;
+	}
+
+	/* Classic dialog: icon left, message right, vertically centred together. */
+	.dialog__main {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+	}
+
+	.dialog__icon {
+		flex: none;
+		width: 44px;
+		height: 44px;
+	}
+
+	.dialog__icon circle {
+		fill: var(--close-red);
+	}
+
+	.dialog__icon path {
+		stroke: #fff;
+		stroke-width: 4;
+		stroke-linecap: round;
+	}
+
+	.dialog__code {
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 22px;
+		font-weight: 700;
+		color: var(--ink);
+		line-height: 1.1;
+	}
+
+	.dialog__msg {
+		margin-top: 2px;
+		color: var(--ink-muted);
+		font-family: var(--font-sans);
+		font-size: 15px;
+	}
+
+	/* Full-width divider + right-aligned action, like a real dialog footer. */
+	.dialog__actions {
+		margin-top: 22px;
+		padding-top: 16px;
+		border-top: 1px solid color-mix(in srgb, var(--window-border) 30%, transparent);
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.dialog__ok {
+		display: inline-block;
+		background: var(--window-bar);
+		color: #ece8d8;
+		text-decoration: none;
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+		font-size: 14px;
+		padding: 8px 20px;
+		border: 2px solid var(--window-border);
+		border-radius: 8px;
+		transition: filter 120ms ease;
+	}
+
+	.dialog__ok:hover {
+		filter: brightness(1.1);
+	}
+</style>
