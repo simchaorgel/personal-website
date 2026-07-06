@@ -110,6 +110,13 @@ const ogImage = new URL('/OG.png', Astro.site);
 				</div>
 			</div>
 		</div>
+		<!-- Cloudflare Web Analytics (cookieless; grey-cloud, so installed manually) -->
+		<script
+			is:inline
+			defer
+			src="https://static.cloudflareinsights.com/beacon.min.js"
+			data-cf-beacon='{"token": "d30888bea07044fda77effa9d769f5cf"}'></script>
+		<!-- End Cloudflare Web Analytics -->
 	</body>
 </html>
 
