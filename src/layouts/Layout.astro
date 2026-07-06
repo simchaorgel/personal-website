@@ -316,6 +316,7 @@ const ogImage = new URL('/OG.png', Astro.site);
 		const finish = () => {
 			win.classList.add('is-closed');
 			win.classList.remove('is-maximized');
+			win.classList.remove('is-closing');
 			win.style.transform = 'none';
 			win.style.opacity = '';
 			win.style.width = '';
@@ -326,6 +327,11 @@ const ogImage = new URL('/OG.png', Astro.site);
 		};
 
 		if (reduceMotion || !opener) return finish();
+
+		// Flag the close so expensive backgrounds (e.g. the Beliefs paper grain)
+		// can drop out while the window scales — scaling an feTurbulence filter
+		// re-runs it every frame, which is what makes that close jagged on phones.
+		win.classList.add('is-closing');
 
 		const s = arcStops(win, opener);
 		win.style.transformOrigin = 'top left';
@@ -344,7 +350,7 @@ const ogImage = new URL('/OG.png', Astro.site);
 	// later drops with a little bounce and settles at the bottom-left — above the
 	// taskbar and clear of the (top-clustered) desktop icons. Runs once per
 	// Welcome node; under reduced-motion it just places it at rest, no animation.
-	const WELCOME_DROP_DELAY = 1500;
+	const WELCOME_DROP_DELAY = 700;
 	const WELCOME_TASKBAR_OVERLAP = 4; // px the settled Welcome overlaps the taskbar
 	function maybeDropWelcome() {
 		if (!phoneScreen()) return;

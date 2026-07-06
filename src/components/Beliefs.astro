@@ -239,6 +239,15 @@
 		font-family: var(--font-serif);
 	}
 
+	/* While the window is closing, drop the grain from both paper layers. Scaling
+	   an feTurbulence background re-runs the filter every frame (the source of the
+	   jagged close on phones); the window is shrinking + fading, so the momentary
+	   flat --paper-bg fill is imperceptible. The grain is back on next open. */
+	:global(#ideas.is-closing .window-body),
+	:global(#ideas.is-closing) .beliefs {
+		background-image: none;
+	}
+
 	.beliefs__controls {
 		display: flex;
 		gap: 10px;
