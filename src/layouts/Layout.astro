@@ -137,10 +137,10 @@ const ogImage = new URL('/OG.png', Astro.site);
 		'Connecting to klurshtu.com…',
 		'Connecting to fooj.net…',
 		'Connecting to brudj.app…',
-		'Connecting to thinko.ai',
-		'Connecting to truffle.dev',
-		'Connecting to sprosh.ai',
-		'Connecting to woq.application',
+		'Connecting to thinko.ai…',
+		'Connecting to truffle.dev…',
+		'Connecting to sprosh.ai…',
+		'Connecting to woq.application…',
 	];
 
 	const BOOT_INITIAL_MS = 4000; // black before the first line appears
@@ -340,6 +340,62 @@ const ogImage = new URL('/OG.png', Astro.site);
 		anim.onfinish = finish;
 	}
 
+	// On phone screens the Welcome window greets you centred, then a few seconds
+	// later drops with a little bounce and settles at the bottom-left — above the
+	// taskbar and clear of the (top-clustered) desktop icons. Runs once per
+	// Welcome node; under reduced-motion it just places it at rest, no animation.
+	const WELCOME_DROP_DELAY = 1500;
+	const WELCOME_TASKBAR_OVERLAP = 4; // px the settled Welcome overlaps the taskbar
+	function maybeDropWelcome() {
+		if (!phoneScreen()) return;
+		const win = document.getElementById('welcome');
+		if (!win || win.classList.contains('is-closed') || win.dataset.dropped) return;
+		win.dataset.dropped = '1';
+
+		const restPos = () => {
+			const taskbarH =
+				parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-h')) || 0;
+			return {
+				left: 8,
+				top: Math.max(8, window.innerHeight - taskbarH - win.offsetHeight + WELCOME_TASKBAR_OVERLAP),
+			};
+		};
+
+		const drop = () => {
+			// Bail if the visitor already dismissed Welcome or opened something else.
+			if (win.classList.contains('is-closed') || open?.win !== win) return;
+
+			const start = win.getBoundingClientRect();
+			const rest = restPos();
+			const dx = rest.left - start.left;
+			const dy = rest.top - start.top;
+
+			const settle = () => {
+				win.style.left = `${rest.left}px`;
+				win.style.top = `${rest.top}px`;
+				win.style.transform = 'none';
+			};
+			if (reduceMotion) return settle();
+
+			const anim = win.animate(
+				[
+					{ transform: 'translate(0, 0)', easing: 'cubic-bezier(0.45, 0, 0.9, 0.6)' }, // gravity
+					{ transform: `translate(${dx}px, ${dy}px)`, offset: 0.5, easing: 'ease-out' }, // floor
+					{ transform: `translate(${dx}px, ${dy - 30}px)`, offset: 0.68, easing: 'ease-in' }, // rebound
+					{ transform: `translate(${dx}px, ${dy}px)`, offset: 0.82, easing: 'ease-out' },
+					{ transform: `translate(${dx}px, ${dy - 10}px)`, offset: 0.92, easing: 'ease-in' }, // 2nd hop
+					{ transform: `translate(${dx}px, ${dy}px)` },
+				],
+				{ duration: 850 },
+			);
+			anim.onfinish = () => {
+				if (!win.classList.contains('is-closed')) settle();
+			};
+		};
+
+		setTimeout(drop, WELCOME_DROP_DELAY);
+	}
+
 	// Re-runs on initial load and after every ClientRouter navigation.
 	// `data-wired` markers keep the *persisted* taskbar buttons from being bound
 	// more than once.
@@ -390,6 +446,8 @@ const ogImage = new URL('/OG.png', Astro.site);
 				}
 			});
 		}
+
+		maybeDropWelcome();
 	}
 
 	// Esc — bound once on the (persistent) document.
