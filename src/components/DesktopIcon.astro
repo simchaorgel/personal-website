@@ -107,6 +107,18 @@ if (center) {
 		box-shadow: 0 0 0 3px rgba(106, 122, 78, 0.18);
 	}
 
+	/* Kill the default black focus rectangle around the whole box + label.
+	   Show a tasteful olive ring on the box instead, and only for keyboard
+	   users (:focus-visible) — a mouse click won't flash it. */
+	.desktop-icon__hit:focus {
+		outline: none;
+	}
+
+	.desktop-icon__hit:focus-visible .desktop-icon__box {
+		border-color: var(--window-bar);
+		box-shadow: 0 0 0 3px rgba(106, 122, 78, 0.45);
+	}
+
 	.desktop-icon__img {
 		width: 100%;
 		height: 100%;
