@@ -268,12 +268,6 @@ const ogImage = new URL('/OG.png', Astro.site);
 	}
 
 	function isPersistent(win: HTMLElement) {
-		// On phone screens the Welcome window drops its persistence and behaves
-		// like any other window: it still opens by default as a greeting, but the
-		// first icon tap replaces it (single-window rule) and Home/Esc close it —
-		// so it stops permanently covering the desktop icons. Desktop keeps it
-		// persistent (there's room for it there).
-		if (win.id === 'welcome' && phoneScreen()) return false;
 		return win.hasAttribute('data-persistent');
 	}
 
@@ -368,8 +362,9 @@ const ogImage = new URL('/OG.png', Astro.site);
 		};
 
 		const drop = () => {
-			// Bail if the visitor already dismissed Welcome or opened something else.
-			if (win.classList.contains('is-closed') || open?.win !== win) return;
+			// Bail only if Welcome was already closed. It's persistent, so another
+			// window opening doesn't cancel the settle — Welcome just drops behind it.
+			if (win.classList.contains('is-closed')) return;
 
 			const start = win.getBoundingClientRect();
 			const rest = restPos();

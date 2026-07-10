@@ -217,7 +217,7 @@ const tinies = await Promise.all(
 			// completes. Touch pointers implicitly capture to the element the finger
 			// lands on, so these bubbling listeners keep receiving moves even when
 			// the finger wanders off the viewer.
-			const SWIPE_MIN = 60; // px of horizontal travel to commit
+			const SWIPE_MIN = 32; // px of horizontal travel to commit
 			const DRAG_START = 8; // px before it counts as a drag rather than a tap
 			let touchId = -1;
 			let fromX = 0;
