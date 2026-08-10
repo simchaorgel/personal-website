@@ -4,16 +4,23 @@ import IconDesktop from './IconDesktop.astro';
 import IconDetail from './IconDetail.astro';
 import type { IconDeskItem } from './IconDesktop.astro';
 
+// Icons
 import mindchordIcon from '../assets/projects/icons/mindchord.png';
 import annaIcon from '../assets/projects/icons/anna.jpeg';
 import invokeIcon from '../assets/projects/icons/invoke.png';
 import thisIcon from '../assets/projects/icons/this.png';
 
+// Project images
 import mindchord1 from '../assets/projects/mindchord-1.jpg';
-import mindchord2 from '../assets/projects/mindchord-2.jpg';
+import mindchord2 from '../assets/projects/mindchord-2.png';
 import mindchord3 from '../assets/projects/mindchord-3.jpg';
 import mindchord4 from '../assets/projects/mindchord-4.jpg';
 import mindchord5 from '../assets/projects/mindchord-5.jpg';
+import mindchord6 from '../assets/projects/mindchord-6.jpg';
+
+import anna1 from '../assets/projects/anna-1.png';
+import anna2 from '../assets/projects/anna-2.png';
+import anna3 from '../assets/projects/anna-3.png';
 
 import invoke1 from '../assets/projects/invoke-1.png';
 import invoke2 from '../assets/projects/invoke-2.png';
@@ -41,23 +48,25 @@ const projects: Project[] = [
 			'Clinicians have the option to set two feedback bands (lo, hi, direction, z-score) and define a z-score for how far above or below baseline the user should be rewarded. Every session starts with a calibration period where the users current baselines for the feedback bands are measured.',
 		],
 		stack: ['Python', 'Brainflow', 'FastAPI', 'Jinja', 'HTML', 'Tailwind CSS', 'JS'],
-		images: [mindchord1, mindchord2, mindchord3, mindchord4, mindchord5],
+		images: [mindchord1, mindchord2, mindchord3, mindchord4, mindchord5, mindchord6],
 	},
 	{
 		id: 'annas-art-studio',
 		title: "Anna's Art Studio",
 		icon: annaIcon,
-		website: 'https://frabjous-paprenjak.netlify.app',
+		website: 'https://annagoldmeierart.co.uk/',
 		github: 'https://github.com/simchaorgel/anna-goldmeier-site',
 		description: [
-			"Anna's Art Studio is designed for Anna to showcase her paintings and events.",
+			"This site is designed to showcase Anna's paintings and events. Visitors can express interest in originals, copies, or private events.",
 		],
 		stack: ['Astro', 'HTML', 'CSS', 'JS', 'Netlify'],
+		images: [anna1, anna2, anna3],
 	},
 	{
 		id: 'this-site',
 		title: 'this site',
 		icon: thisIcon,
+		website: '/',
 		github: 'https://github.com/simchaorgel/personal-website',
 		description: [
 			"self explanatory",
@@ -153,7 +162,10 @@ const projects: Project[] = [
 		justify-content: center;
 		gap: 8px;
 		height: 34px;
-		min-width: 180px;
+		/* Floor sits safely above the longer label ("Open website") so BOTH buttons
+		   clamp to the same width — otherwise the shorter one hits the floor and the
+		   longer one grows past it, most visibly when they wrap/stack on mobile. */
+		min-width: 190px;
 		padding: 0 20px;
 		background: #33658a;
 		border: 2px solid var(--window-border);
