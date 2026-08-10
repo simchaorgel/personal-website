@@ -1,33 +1,43 @@
 ---
-import { Image } from 'astro:assets';
-
-// Auto-loads every cover in src/assets/favourites/books/ — just drop an image
-// in that folder (named so they sort how you want) and it shows up here.
-const modules = import.meta.glob<{ default: ImageMetadata }>(
-	'../../assets/favourites/books/*.{jpg,jpeg,png,webp,avif}',
-	{ eager: true },
-);
-const covers = Object.entries(modules)
-	.sort(([a], [b]) => a.localeCompare(b))
-	.map(([, m]) => m.default);
+// A plain list of favourite books. Order here is the display order — add,
+// remove or reorder freely. (The old cover images still live in
+// src/assets/favourites/books/ but are no longer used.)
+const books: { title: string; author: string }[] = [
+	{ title: 'There Is No Antimemetics Division', author: 'qntm' },
+	{ title: 'The Last Dragonslayer', author: 'Jasper Fforde' },
+	{ title: 'The Constant Rabbit', author: 'Jasper Fforde' },
+	{ title: 'Eragon series', author: 'Christopher Paolini' },
+	{ title: 'Harry Potter and the Methods of Rationality', author: 'Eliezer Yudkowsky' },
+	{ title: 'Project Lawfull', author: 'Iarwain, lintamande' },
+	{ title: 'Unsong', author: 'Scott Alexander' },
+	{ title: 'The Little Prince', author: 'Antoine de Saint-Exupéry' },
+	{ title: 'War and Peace', author: 'Leo Tolstoy' },
+	{ title: 'When Breath Becomes Air', author: 'Paul Kalanithi' },
+	{ title: 'Sapiens', author: 'Yuval Noah Harari' },
+	{ title: 'The Pattern Seekers', author: 'Simon Baron-Cohen' },
+	{ title: 'For the Love of Physics', author: 'Walter Lewin' },
+	{ title: 'Storm in a Teacup', author: 'Helen Czerski' },
+	{ title: 'How Numbers Work', author: 'New Scientist' },
+	{ title: 'What If?', author: 'Randall Munroe' },
+	{ title: "You Talkin' To Me?", author: 'Sam Leith' },
+	{ title: 'Fake Law', author: 'The Secret Barrister' },
+];
 ---
 
 <div class="books">
 	<p class="books__intro">
-		These are some book I've enjoyed reading
 	</p>
 
-	{
-		covers.length > 0 && (
-			<div class="books__gallery">
-				{covers.map((cover, i) => (
-					<span class="books__book">
-						<Image src={cover} alt={`Book cover ${i + 1}`} class="books__cover" />
-					</span>
-				))}
-			</div>
-		)
-	}
+	<ul class="books__list">
+		{
+			books.map((book) => (
+				<li class="books__item">
+					<span class="books__title">{book.title}</span>
+					<span class="books__author"> ({book.author})</span>
+				</li>
+			))
+		}
+	</ul>
 </div>
 
 <style>
@@ -36,44 +46,41 @@ const covers = Object.entries(modules)
 		font-family: var(--font-sans);
 		font-size: 16px;
 		line-height: 1.65;
-		color: var(--ink-muted);
+		color: var(--ink);
+		font-weight: 400;
 	}
 
-	/* A plain gallery of covers on the window's beige — uniform height rows
-	   (bottom-aligned, like books standing together), soft shadows for lift. */
-	.books__gallery {
-		--cover-h: 200px;
-
-		margin-top: 30px;
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-end;
-		column-gap: 26px;
-		row-gap: 34px;
-		padding: 0 4px 10px;
+	.books__list {
+		margin: 24px 0 10px;
+		padding: 0 0 0 20px;
+		font-family: var(--font-sans);
+		font-size: 16px;
+		line-height: 1.5;
+		/* A shade darker than --window-bar, which reads washed-out on beige. */
+		color: #3f4a33;
 	}
 
-	.books__book {
-		display: block;
-		height: var(--cover-h);
+	.books__item {
+		margin-bottom: 10px;
 	}
 
-	.books__cover {
-		display: block;
-		width: auto;
-		height: 100%;
-		border-radius: 2px;
-		box-shadow:
-			0 0 0 1px rgba(58, 58, 58, 0.22),
-			0 7px 10px -5px rgba(58, 58, 58, 0.4);
+	.books__item::marker {
+		color: #3f4a33;
+	}
+
+	.books__title {
+		font-weight: 500;
+	}
+
+	.books__author {
+		opacity: 0.75;
 	}
 
 	@media (max-width: 640px) {
-		.books__gallery {
-			--cover-h: 148px;
-			column-gap: 16px;
-			row-gap: 26px;
-			padding: 0 2px 8px;
+		.books__list {
+			margin-top: 20px;
+			padding-left: 18px;
+			font-size: 15px;
 		}
 	}
 </style>
