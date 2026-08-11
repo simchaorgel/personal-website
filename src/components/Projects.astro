@@ -1,11 +1,13 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import IconDesktop from './IconDesktop.astro';
 import IconDetail from './IconDetail.astro';
+import Lightbox from './Lightbox.astro';
 import type { IconDeskItem } from './IconDesktop.astro';
 
 // Icons
 import mindchordIcon from '../assets/projects/icons/mindchord.png';
+import mindchordDashIcon from '../assets/projects/icons/dash.png';
 import annaIcon from '../assets/projects/icons/anna.jpeg';
 import invokeIcon from '../assets/projects/icons/invoke.png';
 import thisIcon from '../assets/projects/icons/this.png';
@@ -18,9 +20,17 @@ import mindchord4 from '../assets/projects/mindchord-4.jpg';
 import mindchord5 from '../assets/projects/mindchord-5.jpg';
 import mindchord6 from '../assets/projects/mindchord-6.jpg';
 
+import dash1 from '../assets/projects/mindchord-dash-1.png';
+import dash2 from '../assets/projects/mindchord-dash-2.png';
+import dash3 from '../assets/projects/mindchord-dash-3.png';
+import dash4 from '../assets/projects/mindchord-dash-4.png';
+import dash5 from '../assets/projects/mindchord-dash-5.png';
+import dash6 from '../assets/projects/mindchord-dash-6.png';
+
 import anna1 from '../assets/projects/anna-1.png';
 import anna2 from '../assets/projects/anna-2.png';
 import anna3 from '../assets/projects/anna-3.png';
+import anna4 from '../assets/projects/anna-4.png';
 
 import invoke1 from '../assets/projects/invoke-1.png';
 import invoke2 from '../assets/projects/invoke-2.png';
@@ -43,12 +53,25 @@ const projects: Project[] = [
 		icon: mindchordIcon,
 		website: 'https://mindchord.net',
 		description: [
-			'Mindchord is a neurofeedback app designed to be used at home with portable EEG headsets to complete sessions set by clinicians using the Provider Console webapp.',
-			'The app connects to headsets including Muse and Neurosity devices, and provides feedback through video sessions or interactive sessions: In video feedback, the video playing gets brighter or darker depending on how well the user is doing, and in interactive feedback modes, the selected visualisation updates to represent doing well or badly.',
-			'Clinicians have the option to set two feedback bands (lo, hi, direction, z-score) and define a z-score for how far above or below baseline the user should be rewarded. Every session starts with a calibration period where the users current baselines for the feedback bands are measured.',
+			'Mindchord is a neurofeedback app designed to be used at home with a portable EEG headset such as Muse or Neurosity devices. Feedback protocols are set by Mindchord Providers using the separate Mindchord Dashboard app.',
+			'Feedback is provided either through video sessions, where the video playing gets brighter or darker depending on how well the user is doing, or through interactive visualisations that update live to represent doing well or being below baseline.',
+			'Clinicians have the option to set two feedback bands (lo, hi, direction, z-score) and define a z-score for how far above or below their baseline the user should have to be to get reward signals. Every session starts with a calibration period where the users current baselines for the feedback bands are measured.',
+			'For more information please check out mindchord.net or contact me.'
 		],
 		stack: ['Python', 'Brainflow', 'FastAPI', 'Jinja', 'HTML', 'Tailwind CSS', 'JS'],
 		images: [mindchord1, mindchord2, mindchord3, mindchord4, mindchord5, mindchord6],
+	},
+	{
+		id: 'mindchord-dash',
+		title: 'Mindchord Dashboard',
+		icon: mindchordDashIcon,
+		website: 'https://dash.mindchord.net',
+		github: 'https://github.com/simchaorgel/mindchord-dash',
+		description: [
+			'The Mindchord Provider Dashboard is the companion to the Mindchord app. It is used by neurofeedback provider organizations to manage users, protocols, and review user sessions.',
+		],
+		stack: ['HTML', 'Tailwind', 'CSS', 'JS', 'Eleventy', 'Supabase API'],
+		images: [dash1, dash2, dash3, dash4, dash5, dash6],
 	},
 	{
 		id: 'annas-art-studio',
@@ -60,7 +83,7 @@ const projects: Project[] = [
 			"This site is designed to showcase Anna's paintings and events. Visitors can express interest in originals, copies, or private events.",
 		],
 		stack: ['Astro', 'HTML', 'CSS', 'JS', 'Netlify'],
-		images: [anna1, anna2, anna3],
+		images: [anna1, anna2, anna3, anna4],
 	},
 	{
 		id: 'this-site',
@@ -84,11 +107,19 @@ const projects: Project[] = [
 		images: [invoke1, invoke2, invoke3, invoke4]
 	},
 ];
+
+// A pre-optimised large variant per screenshot for the lightbox — the grid uses
+// 320px-wide thumbs, the lightbox these (same trick as the photos window).
+const fulls = await Promise.all(
+	projects.map((p) =>
+		Promise.all((p.images ?? []).map((img) => getImage({ src: img, width: 1600, format: 'webp' }))),
+	),
+);
 ---
 
 <IconDesktop items={projects}>
 	{
-		projects.map((p) => (
+		projects.map((p, pi) => (
 			<IconDetail id={p.id} title={p.title} icon={p.icon}>
 				<div class="proj-body">
 					{(p.website || p.github) && (
@@ -134,9 +165,21 @@ const projects: Project[] = [
 					)}
 
 					{p.images && p.images.length > 0 && (
-						<div class="proj-shots">
+						<div class="proj-shots" data-lightbox-group>
 							{p.images.map((img, i) => (
-								<Image src={img} alt={`${p.title} screenshot ${i + 1}`} class="proj-shot" />
+								<button
+									class="proj-shot-btn"
+									type="button"
+									data-lightbox-src={fulls[pi][i].src}
+									aria-label={`Open ${p.title} screenshot ${i + 1}`}
+								>
+									<Image
+										src={img}
+										alt={`${p.title} screenshot ${i + 1}`}
+										width={640}
+										class="proj-shot"
+									/>
+								</button>
 							))}
 						</div>
 					)}
@@ -144,6 +187,10 @@ const projects: Project[] = [
 			</IconDetail>
 		))
 	}
+
+	<!-- One shared viewer for every project's screenshots; a click anywhere in
+	     the nested desktop opens it, scoped to that project's gallery. -->
+	<Lightbox />
 </IconDesktop>
 
 <style>
@@ -257,6 +304,32 @@ const projects: Project[] = [
 		justify-content: center;
 		gap: 14px;
 		margin-top: 28px;
+	}
+
+	/* Each shot is a button so it opens the lightbox — stripped back to look
+	   exactly like the bare image it replaced. */
+	.proj-shot-btn {
+		display: block;
+		width: 100%;
+		padding: 0;
+		border: none;
+		background: none;
+		border-radius: 5px;
+		cursor: pointer;
+		transition: box-shadow 120ms ease, filter 120ms ease;
+	}
+
+	.proj-shot-btn:hover {
+		filter: brightness(1.04);
+		box-shadow: 0 0 0 1.5px rgba(106, 122, 78, 0.35); /* olive ring, like the photo cells */
+	}
+
+	.proj-shot-btn:focus {
+		outline: none;
+	}
+
+	.proj-shot-btn:focus-visible {
+		box-shadow: 0 0 0 1.5px rgba(106, 122, 78, 0.55);
 	}
 
 	.proj-shot {

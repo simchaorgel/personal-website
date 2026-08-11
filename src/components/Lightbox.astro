@@ -1,0 +1,408 @@
+---
+// A dark in-window lightbox, lifted from the photos viewer (Photography.astro):
+// one image large on black, prev/next + arrow keys, click the letterbox to close,
+// touch swipe, Esc steps back before the Layout's Esc closes the window.
+//
+// Usage: drop <Lightbox /> inside a positioned stage (it fills it absolutely, so
+// the stage needs `position: relative`), and make each clickable image a
+// `<button data-lightbox-src={largeUrl}>`. Every `[data-lightbox-group]`
+// ancestor forms its own prev/next sequence; without one, all triggers in the
+// stage are a single sequence.
+---
+
+<div class="lightbox" hidden>
+	<img class="lightbox__img" alt="" />
+
+	<button class="lightbox__close" type="button" aria-label="Close image">
+		<svg viewBox="0 0 12 12" aria-hidden="true">
+			<path d="M7.5 2 L3.5 6 L7.5 10" />
+		</svg>
+	</button>
+
+	<button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Previous image">
+		<svg viewBox="0 0 12 12" aria-hidden="true">
+			<path d="M7.5 2 L3.5 6 L7.5 10" />
+		</svg>
+	</button>
+	<button class="lightbox__nav lightbox__nav--next" type="button" aria-label="Next image">
+		<svg viewBox="0 0 12 12" aria-hidden="true">
+			<path d="M4.5 2 L8.5 6 L4.5 10" />
+		</svg>
+	</button>
+</div>
+
+<script>
+	// Bound on astro:page-load (ClientRouter swaps the DOM) and idempotent via
+	// data-wired, like every other interactive bit here.
+	const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	function setupLightboxes() {
+		for (const box of document.querySelectorAll<HTMLElement>('.lightbox')) {
+			if (box.dataset.wired) continue;
+			box.dataset.wired = '1';
+
+			const stage = box.parentElement;
+			const full = box.querySelector<HTMLImageElement>('.lightbox__img');
+			const prevBtn = box.querySelector<HTMLElement>('.lightbox__nav--prev');
+			const nextBtn = box.querySelector<HTMLElement>('.lightbox__nav--next');
+			if (!stage || !full) continue;
+
+			// The sequence being viewed — recomputed on each open, since which
+			// gallery you clicked decides what prev/next mean.
+			let items: HTMLElement[] = [];
+			let index = -1;
+			let seq = 0; // stamps each swap so a rapid keypress cancels a slower one
+
+			const srcAt = (i: number) =>
+				items.length ? (items[(i + items.length) % items.length].dataset.lightboxSrc ?? '') : '';
+
+			// Warm the cache for a neighbour so prev/next feels instant.
+			const preload = (i: number) => {
+				const src = srcAt(i);
+				if (src) new Image().src = src;
+			};
+
+			// Swap the displayed image. dir: +1 next / -1 prev (slide), 0 open (pop).
+			// skipExit: the outgoing animation already happened (finger swipe).
+			const swap = async (i: number, dir: number, skipExit = false) => {
+				if (!items.length) return;
+				index = (i + items.length) % items.length;
+				const src = srcAt(index);
+				const my = ++seq;
+
+				if (!reduceMotion && dir !== 0 && !skipExit && full.src) {
+					await full.animate(
+						[
+							{ opacity: 1, transform: 'none' },
+							{ opacity: 0, transform: `translateX(${-16 * dir}px)` },
+						],
+						{ duration: 90, easing: 'ease-in' },
+					).finished;
+					if (my !== seq) return;
+				}
+
+				// Hold the img invisible from before the src swap until the enter
+				// animation's first frame — otherwise the browser paints a
+				// full-opacity frame while it decodes and it reads as a flicker.
+				if (!reduceMotion) full.style.opacity = '0';
+
+				full.src = src;
+				try {
+					await full.decode(); // animate in only once it can actually paint
+				} catch {}
+				if (my !== seq) return;
+
+				if (!reduceMotion) {
+					const enter = full.animate(
+						dir === 0
+							? [{ opacity: 0 }, { opacity: 1, transform: 'none' }]
+							: [
+									{ opacity: 0, transform: `translateX(${16 * dir}px)` },
+									{ opacity: 1, transform: 'none' },
+								],
+						{ duration: dir === 0 ? 200 : 130, easing: 'ease-out' },
+					);
+					enter.onfinish = () => {
+						full.style.opacity = '';
+					};
+				} else {
+					full.style.opacity = '';
+				}
+
+				preload(index + 1);
+				preload(index - 1);
+			};
+
+			const open = (trigger: HTMLElement) => {
+				const group = trigger.closest<HTMLElement>('[data-lightbox-group]') ?? stage;
+				items = [...group.querySelectorAll<HTMLElement>('[data-lightbox-src]')];
+				const i = items.indexOf(trigger);
+				if (i < 0) return;
+
+				// A lone image has nowhere to go — hide the arrows entirely.
+				const solo = items.length < 2;
+				if (prevBtn) prevBtn.hidden = solo;
+				if (nextBtn) nextBtn.hidden = solo;
+
+				box.hidden = false;
+				if (!reduceMotion) {
+					box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' });
+				}
+				swap(i, 0);
+			};
+
+			const close = () => {
+				if (box.hidden) return;
+				index = -1;
+				seq++;
+				const finish = () => {
+					box.hidden = true;
+					full.removeAttribute('src'); // no stale image flash on reopen
+					full.style.opacity = '';
+					full.style.transform = '';
+				};
+				if (reduceMotion) return finish();
+				box.animate([{ opacity: 1 }, { opacity: 0 }], {
+					duration: 120,
+					easing: 'ease-in',
+				}).onfinish = finish;
+			};
+
+			// The img's element box spans the whole lightbox (its letterbox is part
+			// of the element), so "clicked the black background" needs a hit-test
+			// against the actual contained image rectangle.
+			const clickedOutsideImage = (e: MouseEvent) => {
+				const r = full.getBoundingClientRect();
+				const cs = getComputedStyle(full);
+				const cw = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+				const ch = r.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+				const nw = full.naturalWidth;
+				const nh = full.naturalHeight;
+				if (!nw || !nh) return true;
+				const s = Math.min(cw / nw, ch / nh);
+				const x = r.left + parseFloat(cs.paddingLeft) + (cw - nw * s) / 2;
+				const y = r.top + parseFloat(cs.paddingTop) + (ch - nh * s) / 2;
+				return (
+					e.clientX < x || e.clientX > x + nw * s || e.clientY < y || e.clientY > y + nh * s
+				);
+			};
+
+			// Delegated so galleries anywhere in the stage (and any added later)
+			// just work.
+			stage.addEventListener('click', (e) => {
+				const trigger = (e.target as HTMLElement).closest<HTMLElement>('[data-lightbox-src]');
+				if (trigger && stage.contains(trigger)) open(trigger);
+			});
+
+			box.querySelector('.lightbox__close')?.addEventListener('click', close);
+			prevBtn?.addEventListener('click', () => swap(index - 1, -1));
+			nextBtn?.addEventListener('click', () => swap(index + 1, 1));
+
+			// Click on the black backdrop (incl. the letterbox) → close.
+			box.addEventListener('click', (e) => {
+				if (suppressClick) {
+					suppressClick = false;
+					return;
+				}
+				if (e.target === box || (e.target === full && clickedOutsideImage(e))) close();
+			});
+
+			// Touch swipe → prev/next. The image follows the finger; releasing past
+			// the threshold commits, otherwise it springs back. Requires
+			// `touch-action: none` on the layer — without it the browser claims the
+			// horizontal gesture as a native pan and fires pointercancel.
+			const SWIPE_MIN = 32; // px of horizontal travel to commit
+			const DRAG_START = 8; // px before it counts as a drag rather than a tap
+			let touchId = -1;
+			let fromX = 0;
+			let fromY = 0;
+			let dragX = 0;
+			let dragging = false;
+			let suppressClick = false;
+
+			box.addEventListener('pointerdown', (e) => {
+				if (e.pointerType !== 'touch' || !e.isPrimary) return;
+				if ((e.target as HTMLElement).closest('button')) return;
+				if (items.length < 2) return;
+				touchId = e.pointerId;
+				fromX = e.clientX;
+				fromY = e.clientY;
+				dragX = 0;
+				dragging = false;
+			});
+
+			box.addEventListener('pointermove', (e) => {
+				if (e.pointerId !== touchId) return;
+				const dx = e.clientX - fromX;
+				const dy = e.clientY - fromY;
+				if (!dragging) {
+					// Wait until the gesture is clearly horizontal.
+					if (Math.abs(dx) < DRAG_START || Math.abs(dx) < Math.abs(dy)) return;
+					dragging = true;
+					seq++; // invalidate any in-flight swap…
+					for (const a of full.getAnimations()) a.cancel(); // …and its animations
+				}
+				dragX = dx;
+				full.style.transform = `translateX(${dx}px)`;
+				full.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 480));
+			});
+
+			const endSwipe = async (e: PointerEvent, cancelled: boolean) => {
+				if (e.pointerId !== touchId) return;
+				touchId = -1;
+				if (!dragging) return;
+				dragging = false;
+				suppressClick = true; // the release also fires a click on the backdrop
+
+				if (!cancelled && Math.abs(dragX) > SWIPE_MIN) {
+					const dir = dragX < 0 ? 1 : -1; // swipe left → next
+					if (!reduceMotion) {
+						await full.animate(
+							[
+								{ transform: `translateX(${dragX}px)` },
+								{ transform: `translateX(${dragX - dir * 90}px)`, opacity: 0 },
+							],
+							{ duration: 110, easing: 'ease-in' },
+						).finished;
+					}
+					full.style.transform = '';
+					swap(index + dir, dir, true); // the drag was the exit animation
+				} else {
+					// Didn't clear the bar (or the browser cancelled) — spring back.
+					if (!reduceMotion) {
+						full.animate([{ transform: `translateX(${dragX}px)` }, { transform: 'none' }], {
+							duration: 150,
+							easing: 'ease-out',
+						});
+					}
+					full.style.transform = '';
+					full.style.opacity = '';
+				}
+			};
+
+			box.addEventListener('pointerup', (e) => void endSwipe(e, false));
+			box.addEventListener('pointercancel', (e) => void endSwipe(e, true));
+
+			// Keyboard, only while the lightbox is up. Capture phase so Esc reaches
+			// us *before* the Layout's document-level Esc (which would close the
+			// whole window) — here it just closes the lightbox. The isConnected
+			// guard keeps a stale listener from a previous navigation inert.
+			document.addEventListener(
+				'keydown',
+				(e) => {
+					if (!box.isConnected || box.hidden) return;
+					if (e.key === 'Escape') {
+						e.stopPropagation();
+						close();
+					} else if (e.key === 'ArrowRight') {
+						swap(index + 1, 1);
+					} else if (e.key === 'ArrowLeft') {
+						swap(index - 1, -1);
+					}
+				},
+				{ capture: true },
+			);
+
+			// Closing the window drops the lightbox, like the nested desktops reset.
+			box.closest('.window')?.addEventListener('windowclosed', close);
+		}
+	}
+
+	document.addEventListener('astro:page-load', setupLightboxes);
+</script>
+
+<style>
+	/* Fills its stage; above the detail panels and the icon-morph ghost (z 5). */
+	.lightbox {
+		position: absolute;
+		inset: 0;
+		z-index: 10;
+		background: #000;
+		/* Keep the browser from claiming horizontal touch drags as native pans —
+		   without this, swipes die in a pointercancel before pointerup fires. */
+		touch-action: none;
+	}
+
+	/* `display` would fight [hidden]; keep it explicit. */
+	.lightbox[hidden],
+	.lightbox__nav[hidden] {
+		display: none;
+	}
+
+	.lightbox__img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		box-sizing: border-box;
+		padding: 18px 78px;
+	}
+
+	/* Taskbar-blue square, same as the photos viewer's back button. */
+	.lightbox__close {
+		position: absolute;
+		top: 16px;
+		left: 16px;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		background: #33658a;
+		border: 3px solid var(--window-border);
+		border-radius: 8px;
+		color: #fff;
+		cursor: pointer;
+		transition: filter 120ms ease;
+	}
+
+	.lightbox__close:hover {
+		filter: brightness(1.08);
+	}
+
+	.lightbox__close svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	/* Prev/next — quiet dark chips at the sides. */
+	.lightbox__nav {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		display: grid;
+		place-items: center;
+
+		background: rgba(28, 28, 28, 0.75);
+		border: 2px solid rgba(255, 255, 255, 0.25);
+		border-radius: 8px;
+		color: #fff;
+		cursor: pointer;
+		transition: background 120ms ease, border-color 120ms ease;
+	}
+
+	.lightbox__nav:hover {
+		background: rgba(48, 48, 48, 0.85);
+		border-color: rgba(255, 255, 255, 0.45);
+	}
+
+	.lightbox__nav--prev {
+		left: 16px;
+	}
+
+	.lightbox__nav--next {
+		right: 16px;
+	}
+
+	.lightbox__nav svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.lightbox__close svg path,
+	.lightbox__nav svg path {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	@media (max-width: 640px) {
+		/* Arrows drop to the bottom corners so they don't sit on the image. */
+		.lightbox__img {
+			padding: 12px 12px 74px;
+		}
+
+		.lightbox__nav {
+			top: auto;
+			bottom: 14px;
+			transform: none;
+		}
+	}
+</style>
