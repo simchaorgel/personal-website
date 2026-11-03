@@ -34,6 +34,8 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<!-- Tints the browser's address bar (Chrome on Android, Safari) the blue at the top of the sky -->
+		<meta name="theme-color" content="#386fc4" />
 		<link rel="icon" href="/favicon.ico" sizes="48x48" />
 		<!-- Vector favicon: black, or white when the browser is in dark mode (so it shows on dark tabs) -->
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />

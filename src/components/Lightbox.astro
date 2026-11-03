@@ -2,7 +2,7 @@
 // Full-screen photo viewer shared by any page.
 // Usage: drop <Lightbox /> on the page, and mark each clickable image link with
 //   <a href={largeUrl} data-lightbox-item data-width={w} data-height={h}>…</a>
-// Arrow keys move between items, Esc or clicking the black closes it.
+// Arrow keys (or swiping, on touch screens) move between items, Esc or clicking the black closes it.
 import { ChevronLeft, ChevronRight, X } from '@lucide/astro';
 ---
 
@@ -31,6 +31,7 @@ import { ChevronLeft, ChevronRight, X } from '@lucide/astro';
 		border: none;
 		background: transparent;
 		user-select: none;
+		touch-action: pan-y pinch-zoom; /* sideways drags are ours (swiping between images) */
 	}
 
 	.lightbox[open] {
@@ -94,29 +95,29 @@ import { ChevronLeft, ChevronRight, X } from '@lucide/astro';
 	@media (width < 48rem) {
 		/* Room for the close button above and prev/next below, so the image sits between them */
 		.lightbox[open] {
-			padding: 4rem 0 5.5rem;
+			padding: 4rem 0 7rem;
 		}
 
 		.lightbox-img {
 			max-width: calc(100vw - 1.5rem);
-			max-height: calc(100dvh - 10.5rem);
+			max-height: calc(100dvh - 12rem);
 		}
 
 		.prev,
 		.next {
 			top: auto;
-			bottom: max(1.5rem, env(safe-area-inset-bottom));
+			bottom: max(2.5rem, env(safe-area-inset-bottom));
 			left: 50%;
 			right: auto;
 		}
 
-		/* 1.5rem apart, centred as a pair */
+		/* 2.5rem apart, centred as a pair */
 		.prev {
-			translate: calc(-100% - 0.75rem) 0;
+			translate: calc(-100% - 1.25rem) 0;
 		}
 
 		.next {
-			translate: 0.75rem 0;
+			translate: 1.25rem 0;
 		}
 	}
 </style>
@@ -167,6 +168,67 @@ import { ChevronLeft, ChevronRight, X } from '@lucide/astro';
 		// Clicking the black area around the image closes it.
 		dialog.addEventListener('click', (e) => {
 			if (e.target === dialog) dialog.close();
+		});
+
+		// Touch: swipe left for the next image, right for the previous. The image follows
+		// your finger, then slides off and the next one slides in from the other side
+		// (or springs back if the swipe was too short). Pinches and vertical flicks don't count.
+		const calm = matchMedia('(prefers-reduced-motion: reduce)');
+		let startX = 0;
+		let startY = 0;
+		let dx = 0;
+		let pinched = false;
+		let dragging = false;
+		let busy = false; // mid-animation: ignore new swipes until it lands
+
+		dialog.addEventListener('touchstart', (e) => {
+			if (e.touches.length > 1) pinched = true;
+			if (e.touches.length !== 1 || busy) return;
+			pinched = false;
+			dragging = false;
+			dx = 0;
+			startX = e.touches[0].clientX;
+			startY = e.touches[0].clientY;
+		}, { passive: true });
+
+		dialog.addEventListener('touchmove', (e) => {
+			if (pinched || busy || e.touches.length !== 1) return;
+			dx = e.touches[0].clientX - startX;
+			const dy = e.touches[0].clientY - startY;
+			if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) dragging = true;
+			if (dragging && !calm.matches) img.style.translate = `${dx}px 0`;
+		}, { passive: true });
+
+		dialog.addEventListener('touchend', async (e) => {
+			if (e.touches.length || !dragging) return;
+			dragging = false;
+			if (pinched) {
+				img.style.translate = '';
+				return;
+			}
+
+			// Too short: spring back
+			if (Math.abs(dx) < 50) {
+				if (!calm.matches) img.animate([{ translate: `${dx}px 0` }, { translate: '0 0' }], { duration: 150, easing: 'ease-out' });
+				img.style.translate = '';
+				return;
+			}
+
+			const dir = dx < 0 ? 1 : -1; // 1 = next
+			if (calm.matches) {
+				show(current + dir);
+				return;
+			}
+
+			busy = true;
+			const off = window.innerWidth;
+			await img.animate([{ translate: `${dx}px 0` }, { translate: `${-dir * off}px 0` }], { duration: 140, easing: 'ease-in' }).finished;
+			img.style.translate = `${dir * off}px 0`; // wait off-screen on the other side
+			show(current + dir);
+			await img.decode().catch(() => {}); // so it doesn't slide in blank
+			img.style.translate = '';
+			await img.animate([{ translate: `${dir * off}px 0` }, { translate: '0 0' }], { duration: 260, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }).finished;
+			busy = false;
 		});
 
 		dialog.addEventListener('keydown', (e) => {
