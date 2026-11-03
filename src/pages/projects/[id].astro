@@ -1,0 +1,175 @@
+---
+// One template for every project in src/content/projects.yaml -> /projects/<id>
+import '@fontsource-variable/geist';
+import { Image, getImage } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import github from '@tabler/icons/outline/brand-github.svg?raw';
+import world from '@tabler/icons/outline/world.svg?raw';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LinkButton from '../../components/LinkButton.astro';
+import Lightbox from '../../components/Lightbox.astro';
+import SubpageBar from '../../components/SubpageBar.astro';
+
+export async function getStaticPaths() {
+	const projects = await getCollection('projects');
+	return projects.map((project) => ({ params: { id: project.id }, props: { project } }));
+}
+
+const { project } = Astro.props;
+const { title, icon, site, github: repo, about, stack, images } = project.data;
+
+// Paragraphs are separated by blank lines in the YAML.
+const paragraphs = about
+	.split(/\n\s*\n/)
+	.map((p) => p.trim())
+	.filter(Boolean);
+
+// Large versions for the lightbox (longest edge 2000px).
+const LARGE_SIZE = 2000;
+const gallery = await Promise.all(
+	images.map(async (src, i) => {
+		const scale = Math.min(1, LARGE_SIZE / Math.max(src.width, src.height));
+		const large = await getImage({
+			src,
+			width: Math.round(src.width * scale),
+			height: Math.round(src.height * scale),
+			format: 'webp',
+		});
+		return { src, alt: `${title} screenshot ${i + 1}`, large: large.src, width: large.attributes.width, height: large.attributes.height };
+	}),
+);
+---
+
+<BaseLayout title={title}>
+	<SubpageBar back="/projects" backLabel="Projects">
+		<Image src={icon} alt="" class="icon" width={96} height={96} />
+		<h1 class="subpage-title">{title}</h1>
+		{(site || repo) && (
+			<div class="links">
+				{site && <LinkButton href={site} label="Website" icon={world} size="large" />}
+				{repo && <LinkButton href={repo} label="GitHub" icon={github} size="large" />}
+			</div>
+		)}
+	</SubpageBar>
+
+	<article class="project">
+		{paragraphs.length > 0 && (
+			<div class="about">
+				{paragraphs.map((p) => <p>{p}</p>)}
+			</div>
+		)}
+
+		{stack.length > 0 && (
+			<section>
+				<ul class="stack" aria-label="Stack">
+					{stack.map((item) => <li>{item}</li>)}
+				</ul>
+			</section>
+		)}
+
+		{gallery.length > 0 && (
+			<section class="images">
+				{gallery.map((image) => (
+					<a class="arrows" href={image.large} data-lightbox-item data-width={image.width} data-height={image.height}>
+						<Image src={image.src} alt={image.alt} widths={[480, 960]} sizes="(max-width: 60rem) 50vw, 24rem" />
+					</a>
+				))}
+			</section>
+		)}
+	</article>
+
+	<Lightbox />
+</BaseLayout>
+
+<style>
+	.icon {
+		flex: none;
+		width: 2.5rem;
+		height: 2.5rem;
+		object-fit: cover;
+		border-radius: 0.375rem;
+	}
+
+	/* Equal-width buttons: each column is as wide as the widest button */
+	.links {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: 1fr;
+		gap: 0.5rem;
+		margin-left: auto; /* right edge of the text column */
+	}
+
+	.links > :global(*) {
+		justify-content: center;
+	}
+
+	/* Body */
+	.project {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		max-width: 48rem;
+		margin: 0 auto;
+		padding: 2rem 3rem 3rem;
+	}
+
+	.about {
+		font-family: 'Geist Variable', system-ui, sans-serif;
+		font-size: 1rem;
+		line-height: 1.65;
+		color: var(--text);
+	}
+
+	.about p {
+		margin: 0 0 1em;
+	}
+
+	.about p:last-child {
+		margin-bottom: 0;
+	}
+
+	.stack {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.stack li {
+		display: flex;
+		align-items: center;
+		height: 1.625rem;
+		padding: 0 0.5rem;
+		background: var(--button);
+		border: 1px solid var(--button-border);
+		border-radius: 0.375rem;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--text);
+	}
+
+	/* Two screenshots per row */
+	.images {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	/* Hover: small arrows appear around the screenshot (.arrows, in BaseLayout) */
+	.images a {
+		position: relative;
+		display: block;
+		border-radius: 0.1875rem;
+		cursor: default;
+	}
+
+	.images img {
+		display: block;
+		width: 100%;
+		height: auto;
+		border: 1px solid var(--border);
+		border-radius: 0.1875rem;
+	}
+</style>

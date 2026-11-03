@@ -1,0 +1,91 @@
+---
+// Top bar for pages one level down (a project, a favorites section).
+// The back button sits in the left gutter; whatever you put inside lines up
+// with the page's content column below.
+//
+// `width` is the content column's width. The default matches the project text
+// column. Pass "100%" for pages whose content fills the whole area, and give that
+// content 7.5rem of side padding (bar padding + gutter) so it lines up with the bar.
+import { ChevronLeft } from '@lucide/astro';
+
+interface Props {
+	back: string;
+	/** Leave out for an icon-only back button (it's still announced as "Back to …") */
+	backLabel?: string;
+	/** Where the back button goes, for screen readers when there's no label */
+	backTitle?: string;
+	width?: string;
+}
+
+const { back, backLabel, backTitle, width = '42rem' } = Astro.props;
+---
+
+<header class="bar" style={{ '--column': width }}>
+	<a class:list={['back', { 'icon-only': !backLabel }]} href={back} aria-label={backLabel ? undefined : `Back to ${backTitle ?? 'previous page'}`}>
+		<ChevronLeft size={16} aria-hidden="true" />
+		{backLabel}
+	</a>
+	<div class="heading">
+		<slot />
+	</div>
+</header>
+
+<style>
+	.bar {
+		/* Gutters are at least as wide as the back button, so it never overlaps the heading */
+		--gutter: 6.5rem;
+		display: grid;
+		grid-template-columns: minmax(var(--gutter), 1fr) minmax(0, var(--column)) minmax(var(--gutter), 1fr);
+		align-items: center;
+		height: 4.5rem;
+		padding: 0 1rem;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.back {
+		grid-column: 1;
+		grid-row: 1;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		justify-self: start;
+		height: 2rem;
+		padding: 0 0.625rem 0 0.375rem;
+		border-radius: 0.5rem;
+		color: var(--text-muted);
+		font-size: 0.875rem;
+		font-weight: 500;
+		text-decoration: none;
+		white-space: nowrap;
+		transition: background-color 120ms ease-out;
+	}
+
+	.back.icon-only {
+		width: 2rem;
+		padding: 0;
+		justify-content: center;
+	}
+
+	.back:hover {
+		background: var(--hover);
+		color: var(--text);
+	}
+
+	.heading {
+		grid-column: 2;
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		min-width: 0;
+	}
+
+	/* Shared heading title style */
+	.heading :global(.subpage-title) {
+		margin: 0;
+		font-size: 1.75rem;
+		font-weight: 400;
+		letter-spacing: -0.02em;
+		color: var(--text);
+		white-space: nowrap;
+	}
+</style>

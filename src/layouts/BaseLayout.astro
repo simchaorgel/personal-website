@@ -1,0 +1,248 @@
+---
+import '@fontsource-variable/inter';
+import { ClientRouter, fade } from 'astro:transitions';
+import Sidebar from '../components/Sidebar.astro';
+import ColorPanel from '../components/ColorPanel.astro';
+import SkyBackground from '../components/SkyBackground.astro';
+
+interface Props {
+	title: string;
+	/** Optional background for this page's content area (any CSS colour). */
+	background?: string;
+	/** 'dark' turns the whole window dark: sidebar, content and scrollbar */
+	theme?: 'light' | 'dark';
+}
+
+const { title, background, theme } = Astro.props;
+
+// Every page has the same tab title. (`title` is kept as a label for each page but not shown.)
+const SITE_NAME = 'Simcha O';
+const fullTitle = SITE_NAME;
+
+// Link preview (Discord, iMessage, X, etc.). Needs a full URL, hence `site` in astro.config.
+const ogImage = new URL('/og.jpg', Astro.site ?? Astro.url);
+---
+
+<html lang="en" data-theme={theme} transition:animate="none">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" href="/favicon.ico" sizes="48x48" />
+		<link rel="icon" type="image/png" href="/icon-512.png" sizes="512x512" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{fullTitle}</title>
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={fullTitle} />
+		<meta property="og:site_name" content={SITE_NAME} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="Blue sky with white clouds" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<ClientRouter />
+		<!--
+			Intro: on a fresh load of the homepage, show only the sky for a moment,
+			then the window grows in from the centre. Runs before first paint so the
+			window never flashes. (Navigating to Home from another page doesn't replay it.)
+		-->
+		<script is:inline>
+			if (location.pathname === '/') document.documentElement.classList.add('intro');
+		</script>
+	</head>
+	<body>
+		<SkyBackground />
+		<div class="window">
+			<Sidebar />
+			<main
+				class="content"
+				style={background ? { background } : undefined}
+				transition:name="content"
+				transition:animate={fade({ duration: '120ms' })}
+			>
+				<slot />
+			</main>
+		</div>
+		{import.meta.env.DEV && <ColorPanel />}
+	</body>
+</html>
+
+<style is:global>
+	/* Registered as colours so they can animate: switching to/from the dark window fades
+	   every colour at once instead of snapping. */
+	@property --background { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --sidebar { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --border { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --window-border { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --text { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --text-muted { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --hover { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --active { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --button { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --button-hover { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --button-border { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --button-icon { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --arrows { syntax: '<color>'; inherits: true; initial-value: transparent; }
+	@property --scrollbar { syntax: '<color>'; inherits: true; initial-value: transparent; }
+
+	/* The whole colour scheme. In dev, the colour panel (bottom-right) overrides these live. */
+	:root {
+		--page: #ffffff; /* around the window */
+		--background: #f2f8f4; /* content area */
+		--sidebar: #e0efe8;
+		--border: #c9d7d1;
+		--window-border: #e1ebe6;
+		--text: #261124;
+		--text-muted: #838085;
+		--hover: #c7e2d6;
+		--active: #b3d2c3; /* aed6c4 pulled softer: displays render it more saturated */
+		--button: #e6eae8;
+		--button-hover: #dbe2df;
+		--button-border: #bcccc6;
+		--button-icon: #6f6870;
+		--arrows: #2b5042; /* hover arrows around photos and screenshots */
+		--focus: #008450; /* keyboard focus ring */
+		--scrollbar: var(--border);
+	}
+
+	html {
+		transition: --background 200ms ease-out, --sidebar 200ms ease-out, --border 200ms ease-out, --window-border 200ms ease-out, --text 200ms ease-out, --text-muted 200ms ease-out, --hover 200ms ease-out, --active 200ms ease-out, --button 200ms ease-out, --button-hover 200ms ease-out, --button-border 200ms ease-out, --button-icon 200ms ease-out, --arrows 200ms ease-out, --scrollbar 200ms ease-out;
+	}
+
+	/* Dark window, matched to the T3 Code dark settings window.
+	   On <html> because it's the one element kept across page navigations, so the colours
+	   can fade (see the transition above). !important so it wins over the dev colour panel,
+	   which writes its overrides inline on <html>. */
+	html[data-theme='dark'] {
+		--background: #000000 !important;
+		--sidebar: #111111 !important;
+		--border: #242424 !important;
+		--window-border: #242424 !important;
+		--text: #f5f5f5 !important;
+		--text-muted: #838484 !important;
+		--hover: #171717 !important;
+		--active: #1c1c1c !important;
+		--button: #101010 !important;
+		--button-hover: #1c1c1c !important;
+		--button-border: #2a2a2a !important;
+		--button-icon: #9a9a9a !important;
+		--arrows: #f5f5f5 !important;
+		--scrollbar: #3a3a3a !important;
+		color-scheme: dark;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
+	}
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	html,
+	body {
+		margin: 0;
+		height: 100%;
+		font-family: 'Inter Variable', system-ui, sans-serif;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Homepage intro (see the script in <head>) */
+	/* Two animations so the fade and the grow can have different speeds */
+	html.intro .window {
+		animation:
+			window-fade-in 300ms ease-out 3.2s both,
+			window-grow 2000ms cubic-bezier(0.16, 1, 0.3, 1) 3.2s both;
+	}
+
+	@keyframes window-grow {
+		from {
+			scale: 0.98;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		html.intro .window {
+			animation-name: window-fade-in; /* drop the grow, keep the fade */
+		}
+	}
+
+	@keyframes window-fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+
+	/* Four small arrows (stem + head) in the gaps around the photo, pointing at it.
+	   Add class="arrows" to any position:relative image link. Drawn as masks, coloured by --arrows.
+	   ::before holds the left/right pair, ::after the top/bottom pair. */
+	.arrows::before,
+	.arrows::after {
+		content: '';
+		position: absolute;
+		background: var(--arrows);
+		mask-repeat: no-repeat;
+		mask-size: 8px 8px;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 120ms ease-out;
+	}
+
+	.arrows::before {
+		inset: 0 -9px;
+		mask-image: var(--arrow-right), var(--arrow-left);
+		mask-position: left center, right center;
+	}
+
+	.arrows::after {
+		inset: -9px 0;
+		mask-image: var(--arrow-down), var(--arrow-up);
+		mask-position: center top, center bottom;
+	}
+
+	.arrows:hover::before,
+	.arrows:hover::after,
+	.arrows:focus-visible::before,
+	.arrows:focus-visible::after {
+		opacity: 1;
+	}
+
+	.arrows {
+		--arrow-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 4h6M4.25 1.25 7 4 4.25 6.75'/%3E%3C/svg%3E");
+		--arrow-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 4H1M3.75 1.25 1 4 3.75 6.75'/%3E%3C/svg%3E");
+		--arrow-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 1v6M1.25 4.25 4 7 6.75 4.25'/%3E%3C/svg%3E");
+		--arrow-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7V1M1.25 3.75 4 1 6.75 3.75'/%3E%3C/svg%3E");
+	}
+
+	/* Only on <html>: a body background would cover the sky canvas behind the window */
+	html {
+		background: var(--page);
+	}
+</style>
+
+<style>
+	.window {
+		position: fixed;
+		inset: 0;
+		margin: auto;
+		width: min(80rem, 100% - 5rem);
+		height: min(60rem, 100% - 5rem);
+		display: grid;
+		grid-template-columns: 15rem 1fr;
+		overflow: hidden;
+		background: var(--background);
+		border: 1px solid var(--window-border);
+		border-radius: 1rem;
+		box-shadow: 0 4px 16px rgb(0 0 0 / 0.06);
+	}
+
+	.content {
+		min-width: 0;
+		overflow-y: auto;
+		scrollbar-width: thin;
+		scrollbar-color: var(--scrollbar) transparent;
+	}
+</style>

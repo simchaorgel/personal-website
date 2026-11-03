@@ -1,0 +1,100 @@
+---
+import { Camera, FolderKanban, Heart, House, Mail } from '@lucide/astro';
+
+const links = [
+	{ href: '/', label: 'Home', icon: House },
+	{ href: '/projects', label: 'Projects', icon: FolderKanban },
+	{ href: '/pics', label: "Pics I've taken", icon: Camera },
+	{ href: '/favorites', label: 'Favorites', icon: Heart },
+	{ href: '/contact', label: 'Contact', icon: Mail },
+];
+
+const current = Astro.url.pathname.replace(/\/$/, '') || '/';
+// A link is active on its own page and on any page under it (e.g. /projects/mindchord).
+const isActive = (href: string) => current === href || (href !== '/' && current.startsWith(href + '/'));
+---
+
+<aside class="sidebar" transition:persist>
+	<!-- Reserved for the search bar -->
+	<div class="search-slot"></div>
+
+	<nav>
+		<ul>
+			{links.map((link) => (
+				<li>
+					<a href={link.href} aria-current={isActive(link.href) ? 'page' : undefined}>
+						<link.icon size={16} aria-hidden="true" />
+						{link.label}
+					</a>
+				</li>
+			))}
+		</ul>
+	</nav>
+</aside>
+
+<style>
+	.sidebar {
+		display: flex;
+		flex-direction: column;
+		padding: 0 0.5rem;
+		background: var(--sidebar);
+		border-right: 1px solid var(--border);
+		font-size: 0.875rem;
+		font-weight: 500;
+	}
+
+	.search-slot {
+		height: 3rem;
+		flex-shrink: 0;
+	}
+
+	ul {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	a {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		height: 2rem;
+		padding: 0 0.625rem;
+		border-radius: 0.5rem;
+		color: var(--text-muted);
+		text-decoration: none;
+	}
+
+	a:hover {
+		background: var(--hover);
+		color: var(--text);
+	}
+
+	a:active,
+	a[aria-current='page'] {
+		background: var(--active);
+		color: var(--text);
+	}
+</style>
+
+<script>
+	// The sidebar persists across navigations, so its server-rendered
+	// aria-current would go stale. Keep it in sync ourselves.
+	function markActive(pathname: string) {
+		const path = pathname.replace(/\/$/, '') || '/';
+		document.querySelectorAll<HTMLAnchorElement>('.sidebar a').forEach((a) => {
+			const active = a.pathname === path || (a.pathname !== '/' && path.startsWith(a.pathname + '/'));
+			if (active) a.setAttribute('aria-current', 'page');
+			else a.removeAttribute('aria-current');
+		});
+	}
+
+	// Mark the destination as soon as a navigation starts, so a clicked tab stays
+	// highlighted the whole time the next page is loading (no flicker back to plain).
+	document.addEventListener('astro:before-preparation', (e) => markActive(e.to.pathname));
+	// And once it's loaded, in case the navigation was cancelled or redirected.
+	document.addEventListener('astro:page-load', () => markActive(location.pathname));
+</script>

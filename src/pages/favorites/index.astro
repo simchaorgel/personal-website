@@ -1,0 +1,27 @@
+---
+import tpot from '../../assets/about/tpot.png';
+import music from '@tabler/icons/outline/music.svg?raw';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+
+// Each section is its own page in src/pages/favorites/
+const sections = [
+	{ href: '/favorites/tweets', title: 'Tweets', icon: tpot, plain: true },
+	{ href: '/favorites/music', title: 'Music', icon: music },
+];
+---
+
+<BaseLayout title="Favorites">
+	<div class="grid">
+		{sections.map((section) => <ProjectCard {...section} />)}
+	</div>
+</BaseLayout>
+
+<style>
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		gap: 1rem;
+		padding: 3rem;
+	}
+</style>

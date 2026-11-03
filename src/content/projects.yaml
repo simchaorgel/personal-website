@@ -1,0 +1,86 @@
+# All projects, in the order they appear on the Projects page.
+# Each one gets its own page at /projects/<id>.
+#
+#   id           URL name (lowercase, dashes)
+#   title
+#   description  one line, shown on the Projects page card only
+#   icon         path relative to this file
+#   site         optional, link for the "Website" button
+#   github       optional, link for the "GitHub" button
+#   about        the write-up; leave a blank line between paragraphs
+#   stack        list of technologies
+#   images       screenshots shown on the project's page
+
+- id: mindchord
+  title: Mindchord
+  description: Neurofeedback application
+  icon: ../assets/projects/icons/mindchord.png
+  site: https://mindchord.net
+  about: |
+    Mindchord is a neurofeedback app designed to be used at home with a portable EEG headset like Muse or Neurosity devices. Feedback protocols are set by Mindchord Providers using the separate Mindchord Dashboard app.
+
+    Feedback is provided either through video sessions, where the video playing gets brighter or darker depending on how well the user is doing, or through interactive visualizations that update live to represent the score.
+
+    Clinicians have the option to set three feedback bands (lo, hi, reward/inhibit) and choose the percentage of the time the user should be getting rewarded during the session. Every session starts with a calibration period where the user's current baselines for the feedback bands are measured.
+
+    For more information check out mindchord.net or get in contact!
+  stack:
+    - Python
+    - Brainflow
+    - FastAPI
+    - Jinja
+    - HTML
+    - Tailwind CSS
+    - JS
+  images:
+    - ../assets/projects/mindchord-1.jpg
+    - ../assets/projects/mindchord-2.png
+    - ../assets/projects/mindchord-3.jpg
+    - ../assets/projects/mindchord-4.jpg
+    - ../assets/projects/mindchord-5.jpg
+    - ../assets/projects/mindchord-6.jpg
+
+- id: mindchord-dash
+  title: Mindchord dash
+  description: Clinician side
+  icon: ../assets/projects/icons/dash.png
+  site: https://dash.mindchord.net
+  github: https://github.com/simchaorgel/mindchord-dash
+  about: |
+    The Mindchord Provider Dashboard is the companion to the Mindchord app. It is used by neurofeedback provider organizations to manage users, protocols, and review user sessions.
+  stack: [HTML, Tailwind, CSS, JS, Eleventy, Supabase API]
+  images:
+    - ../assets/projects/mindchord-dash-1.png
+    - ../assets/projects/mindchord-dash-2.png
+    - ../assets/projects/mindchord-dash-3.png
+    - ../assets/projects/mindchord-dash-4.png
+    - ../assets/projects/mindchord-dash-5.png
+    - ../assets/projects/mindchord-dash-6.png
+
+- id: annas-art-studio
+  title: Anna's Art Studio
+  description: Site for personal artist
+  icon: ../assets/projects/icons/anna.jpeg
+  site: https://annagoldmeierart.co.uk/
+  github: https://github.com/simchaorgel/anna-goldmeier-site
+  about: |
+    This site is designed to showcase Anna's paintings and events. Visitors can express interest in originals, copies, or private events.
+  stack: [Astro, HTML, CSS, JS, Netlify]
+  images:
+    - ../assets/projects/anna-1.png
+    - ../assets/projects/anna-2.png
+    - ../assets/projects/anna-3.png
+    - ../assets/projects/anna-4.png
+
+- id: invoke-invoicer
+  title: Invoke Invoicer
+  description: Automatic invoice generator
+  icon: ../assets/projects/icons/invoke.png
+  about: |
+    Invoke is an automatic invoicer designed for users who have regular recurring clients, for example therapists or private trainers. It reads from the user's Google Calendar and compares entries to the user's Google Sheet 'users' table to classify which calendar entries are user appointments. Running the program generates a PDF invoice for each client with appointment information based on how many times they showed up in the selected month (with reduced fees for cancelations), and uploads them to a folder in the users Google Drive.
+  stack: [Electron, Python, HTML, CSS, JS]
+  images:
+    - ../assets/projects/invoke-1.png
+    - ../assets/projects/invoke-2.png
+    - ../assets/projects/invoke-3.png
+    - ../assets/projects/invoke-4.png

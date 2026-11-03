@@ -1,0 +1,61 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SubpageBar from '../../components/SubpageBar.astro';
+import tpot from '../../assets/about/tpot.png';
+
+// Every screenshot in src/assets/favorites/tweets/ is shown, sorted by filename.
+const files = import.meta.glob<{ default: ImageMetadata }>(
+	'../../assets/favorites/tweets/*.{jpg,JPG,jpeg,JPEG,png,PNG,webp,WEBP,avif,AVIF}',
+	{ eager: true },
+);
+
+const tweets = Object.entries(files)
+	.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+	.map(([, mod], i) => ({ src: mod.default, alt: `Tweet ${i + 1}` }));
+---
+
+<BaseLayout title="Tweets" theme="dark">
+	<SubpageBar back="/favorites" backTitle="Favorites" width="100%">
+		<Image src={tpot} alt="" class="logo" height={64} />
+		<h1 class="subpage-title">some favorite tweets</h1>
+	</SubpageBar>
+
+	<!-- Masonry: 2 columns, 1 when there isn't room for 18rem each -->
+	<div class="tweets">
+		{tweets.map((tweet, i) => (
+			<Image
+				src={tweet.src}
+				alt={tweet.alt}
+				widths={[600, 1200]}
+				sizes="(max-width: 60rem) 100vw, 26rem"
+				loading={i < 6 ? 'eager' : 'lazy'}
+			/>
+		))}
+	</div>
+</BaseLayout>
+
+<style>
+	.logo {
+		flex: none;
+		width: auto;
+		height: 1.75rem;
+	}
+
+	/* Side padding = bar padding + gutter, so the grid lines up with the logo */
+	.tweets {
+		columns: 18rem 2;
+		column-gap: 1rem;
+		padding: 2rem 7.5rem 3rem;
+	}
+
+	.tweets img {
+		display: block;
+		width: 100%;
+		height: auto;
+		margin-bottom: 1rem;
+		break-inside: avoid;
+		border-radius: 0.1875rem;
+	}
+</style>

@@ -1,0 +1,244 @@
+---
+// Contact form, handled by Netlify Forms (no backend needed).
+// Netlify finds the form in the built HTML at deploy time because of data-netlify.
+// Submissions show up in the Netlify dashboard under Forms, and can be emailed to you
+// from there (Forms → Form notifications).
+// It only works on the deployed site: `astro dev` has nothing to receive the POST.
+// The whole form is one big textbox; the message just has to include an email
+// address somewhere (checked before sending) so there's a way to reply.
+import { ArrowRight, Ban, Mail } from '@lucide/astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Contact">
+	<form
+		class="contact"
+		name="contact"
+		method="POST"
+		data-netlify="true"
+		netlify-honeypot="company"
+		data-astro-reload
+	>
+		<!-- Netlify needs the form name in the submission -->
+		<input type="hidden" name="form-name" value="contact" />
+		<!-- Filled in from the message before sending, so the dashboard shows who to reply to -->
+		<input type="hidden" name="email" />
+
+		<!-- Spam trap: hidden from people, bots fill it in and get dropped -->
+		<p class="trap" aria-hidden="true">
+			<label>Company <input name="company" tabindex="-1" autocomplete="off" /></label>
+		</p>
+
+		<div class="top">
+			<button type="submit">
+				<span class="icons" aria-hidden="true">
+					<ArrowRight size={20} class="step-1" />
+					<ArrowRight size={20} class="ok step-2" />
+					<Ban size={20} class="error" />
+					<Mail size={20} class="mail step-3" />
+					<ArrowRight size={20} class="step-4" />
+				</span>
+				<!-- Every label the button can show sits invisibly in the same spot,
+				     so the button is always as wide as the longest one -->
+				<span class="labels">
+					<span class="label" aria-live="polite">Submit message</span>
+					<span class="sizer" aria-hidden="true">Include an email</span>
+					<span class="sizer" aria-hidden="true">Failed, try again</span>
+					<span class="sizer" aria-hidden="true">Sending…</span>
+					<span class="sizer" aria-hidden="true">Sent!</span>
+				</span>
+			</button>
+		</div>
+
+		<textarea name="message" aria-label="Message (include your email so I can reply)" spellcheck="true"></textarea>
+	</form>
+</BaseLayout>
+
+<style>
+	.contact {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		height: 100%;
+		padding: 3rem;
+	}
+
+	.trap {
+		position: absolute;
+		left: -9999px;
+	}
+
+	.top {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	/* The big grey button */
+	button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex: none;
+		height: 3rem;
+		padding: 0 1.5rem;
+		background: var(--button);
+		border: 1px solid var(--button-border);
+		border-radius: 0.625rem;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+		color: var(--text);
+		font: inherit;
+		font-size: 1.125rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 120ms ease-out;
+	}
+
+	.icons {
+		display: flex;
+		gap: 0.125rem;
+	}
+
+	/* While an error shows, the second arrow becomes a "no" symbol */
+	.icons :global(.error),
+	button[data-error] .icons :global(.ok) {
+		display: none;
+	}
+
+	button[data-error] .icons :global(.error) {
+		display: block;
+		color: #d92d20;
+	}
+
+	.labels {
+		display: grid;
+	}
+
+	.labels > * {
+		grid-area: 1 / 1;
+		text-align: left;
+	}
+
+	.sizer {
+		visibility: hidden;
+	}
+
+	/* Sent: the icons switch colour one by one, left to right (arrows green, mail blue).
+	   No fade: a zero-length transition with a delay just times each switch. */
+	.icons :global(svg) {
+		transition: color 0s;
+	}
+
+	button[data-sent] .icons :global(svg) {
+		color: #12a150;
+	}
+
+	button[data-sent] .icons :global(.mail) {
+		color: #2f6fed;
+	}
+
+	button[data-sent] .icons :global(.step-2) {
+		transition-delay: 250ms;
+	}
+
+	button[data-sent] .icons :global(.step-3) {
+		transition-delay: 500ms;
+	}
+
+	button[data-sent] .icons :global(.step-4) {
+		transition-delay: 750ms;
+	}
+
+	button:hover {
+		background: var(--button-hover);
+	}
+
+	button:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+
+	/* No box at all: just big text and a big blinking cursor */
+	textarea {
+		flex: 1;
+		width: 100%;
+		padding: 0;
+		background: transparent;
+		border: none;
+		outline: none;
+		resize: none;
+		color: var(--text);
+		caret-color: var(--text);
+		font: inherit;
+		font-size: 1.75rem;
+		line-height: 1.4;
+	}
+</style>
+
+<script>
+	// Anything shaped like name@domain.tld, anywhere in the message.
+	const EMAIL = /[^\s@<>()[\],;:"']+@[^\s@<>()[\],;:"']+\.[a-z]{2,}/i;
+
+	document.addEventListener('astro:page-load', () => {
+		const form = document.querySelector<HTMLFormElement>('form.contact');
+		if (!form) return;
+		const button = form.querySelector('button')!;
+		const message = form.querySelector('textarea')!;
+		const email = form.querySelector<HTMLInputElement>('input[name="email"]')!;
+		const label = button.querySelector('.label')!;
+		const LABEL = label.textContent;
+
+		// Errors show in the button itself for 3 seconds (or until you start typing again).
+		// "Sent!" stays until you start typing a new message.
+		let resetTimer: number | undefined;
+		function resetLabel() {
+			clearTimeout(resetTimer);
+			label.textContent = LABEL;
+			button.removeAttribute('data-error');
+			button.removeAttribute('data-sent');
+		}
+		function showError(text: string) {
+			label.textContent = text;
+			button.removeAttribute('data-sent');
+			button.setAttribute('data-error', '');
+			clearTimeout(resetTimer);
+			resetTimer = window.setTimeout(resetLabel, 3000);
+		}
+		message.addEventListener('input', resetLabel);
+
+		// Cursor is blinking and ready as soon as you land on the page.
+		message.focus();
+
+		form.addEventListener('submit', async (e) => {
+			e.preventDefault();
+
+			const found = message.value.match(EMAIL);
+			if (!found) {
+				showError('Include an email');
+				message.focus();
+				return;
+			}
+			email.value = found[0];
+
+			button.disabled = true;
+			resetLabel();
+			label.textContent = 'Sending…';
+			try {
+				const body = new URLSearchParams(new FormData(form) as unknown as Record<string, string>);
+				const res = await fetch('/', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+					body: body.toString(),
+				});
+				if (!res.ok) throw new Error(String(res.status));
+				form.reset();
+				label.textContent = 'Sent!';
+				button.setAttribute('data-sent', '');
+			} catch {
+				showError('Failed, try again');
+			} finally {
+				button.disabled = false;
+			}
+		});
+	});
+</script>

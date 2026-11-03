@@ -1,0 +1,100 @@
+---
+import { Image, getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Lightbox from '../components/Lightbox.astro';
+
+// Every image in src/assets/pics/ is shown, sorted by filename.
+// To add or remove pics, just add or delete files in that folder.
+const files = import.meta.glob<{ default: ImageMetadata }>(
+	'../assets/pics/*.{jpg,JPG,jpeg,JPEG,png,PNG,webp,WEBP,avif,AVIF}',
+	{ eager: true },
+);
+
+// Roughly the first row or two: load these straight away, lazy-load the rest.
+const EAGER_COUNT = 10;
+
+// Longest edge of the large version shown in the lightbox.
+const LARGE_SIZE = 2000;
+
+const pics = await Promise.all(
+	Object.entries(files)
+		.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+		.map(async ([path, mod]) => {
+			const src = mod.default;
+			const scale = Math.min(1, LARGE_SIZE / Math.max(src.width, src.height));
+			const large = await getImage({
+				src,
+				width: Math.round(src.width * scale),
+				height: Math.round(src.height * scale),
+				format: 'webp',
+			});
+			return {
+				src,
+				alt: path.split('/').pop()!.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '),
+				large: large.src,
+				largeWidth: large.attributes.width,
+				largeHeight: large.attributes.height,
+			};
+		}),
+);
+---
+
+<BaseLayout title="Pics I've taken">
+	<div class="grid">
+		{pics.map((pic, i) => (
+			<a
+				href={pic.large}
+				class="thumb arrows"
+				data-lightbox-item
+				data-width={pic.largeWidth}
+				data-height={pic.largeHeight}
+			>
+				<span class="frame">
+					<Image
+						src={pic.src}
+						alt={pic.alt}
+						width={168}
+						height={168}
+						densities={[1, 2]}
+						loading={i < EAGER_COUNT ? 'eager' : 'lazy'}
+					/>
+				</span>
+			</a>
+		))}
+	</div>
+
+	<Lightbox />
+</BaseLayout>
+
+<style>
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, 10.5rem);
+		justify-content: center;
+		gap: 10px;
+		padding: 3rem;
+	}
+
+	/* Hover: small arrows appear in the gaps around the photo (.arrows, in BaseLayout) */
+	.thumb {
+		position: relative;
+		display: block;
+		border-radius: 4px;
+		cursor: default;
+	}
+
+	.frame {
+		display: block;
+		overflow: hidden;
+		border-radius: 4px;
+	}
+
+	.thumb img {
+		display: block;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 1;
+		object-fit: cover;
+	}
+</style>

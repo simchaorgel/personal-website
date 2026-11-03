@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cloudy sky</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #5d8cc4; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #panel {
+    position: fixed; right: 14px; bottom: 14px; padding: 12px 14px;
+    font: 12px/1.4 system-ui, sans-serif; color: #fff;
+    background: rgba(20, 40, 70, 0.35); backdrop-filter: blur(8px);
+    border-radius: 10px; opacity: 0; transition: opacity .4s;
+  }
+  #panel:hover { opacity: 1; }
+  #panel label { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin: 4px 0; }
+  #panel input { width: 120px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- Hover the bottom-right corner to reveal controls -->
+<div id="panel">
+  <label>Coverage <input id="coverage" type="range" min="0" max="1" step="0.01" value="0.58"></label>
+  <label>Wind     <input id="wind"     type="range" min="0" max="1" step="0.01" value="0.25"></label>
+</div>
+
+<script id="vs" type="x-shader/x-vertex">
+attribute vec2 aPos;
+void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+</script>
+
+<script id="fs" type="x-shader/x-fragment">
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+
+uniform vec2  uRes;
+uniform float uTime;
+uniform float uCoverage;
+
+// Light comes from off-screen (upper left). The sun itself is never drawn.
+const vec2 LIGHT = vec2(-0.6, 0.8);
+
+float hash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+             mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+const mat2 ROT = mat2(0.80, -0.60, 0.60, 0.80);
+
+float fbm(vec2 p, int oct) {
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 8; i++) {      // WebGL1 needs a constant loop bound
+    if (i >= oct) break;
+    s += a * noise(p);
+    p = ROT * p * 2.03 + vec2(1.7, 9.2);
+    a *= 0.5;
+  }
+  return s;
+}
+
+// Returns (coverage alpha, lighting 0..1) for one cloud layer.
+vec2 cloudLayer(vec2 p, float t, float cov, vec2 seed) {
+  vec2 wind = vec2(1.0, 0.25) * t;
+  p += wind;
+
+  // slow domain warp drifting at its own rate, so shapes morph while moving
+  vec2 wq = p * 0.5 - wind * 0.3 + seed;
+  vec2 warp = vec2(fbm(wq, 4), fbm(wq + vec2(5.2, 1.3) + t * 0.4, 4)) - 0.5;
+  vec2 q = p + warp * 0.75 + seed;
+
+  float c0    = mix(0.66, 0.30, cov);
+  float base  = fbm(q, 7);
+  float light = fbm(q + LIGHT * 0.22, 5);   // how much cloud sits toward the light
+
+  float d     = smoothstep(c0, c0 + 0.07, base);
+  float thick = smoothstep(c0 + 0.01, c0 + 0.18, base);
+  float occl  = smoothstep(c0 - 0.05, c0 + 0.30, light);
+
+  float lit = exp(-occl * 1.1) * mix(1.0, 0.38, thick);
+  return vec2(d, lit);
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRes.y;
+  float y = gl_FragCoord.y / uRes.y;
+
+  // soft blue, a touch deeper toward the top of the screen
+  vec3 col = mix(vec3(0.38, 0.58, 0.84), vec3(0.20, 0.42, 0.76), y);
+
+  // far layer: smaller, slower, hazier, lower contrast
+  vec2 far = cloudLayer(uv * 3.0, uTime * 0.005, uCoverage * 0.9, vec2(13.1, 7.7));
+  vec3 farCol = mix(vec3(0.64, 0.71, 0.82), vec3(0.92, 0.94, 0.98), far.y);
+  col = mix(col, farCol, far.x * 0.85);
+
+  // near layer: bigger, faster (parallax), deeper shadows
+  vec2 near = cloudLayer(uv * 1.5, uTime * 0.011, uCoverage, vec2(0.0));
+  vec3 nearCol = mix(vec3(0.50, 0.56, 0.67), vec3(1.0, 0.98, 0.95), near.y);
+  nearCol = mix(nearCol, col * 1.12, (1.0 - near.x) * 0.3);  // sky bleeds into wispy edges
+  col = mix(col, nearCol, near.x);
+
+  // dither to avoid banding
+  col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) / 255.0;
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', { antialias: false, alpha: false });
+if (!gl) document.body.innerHTML = '<p style="color:#fff;font:16px sans-serif;padding:20px">WebGL not supported.</p>';
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER,   document.getElementById('vs').textContent));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, document.getElementById('fs').textContent));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+// one fullscreen triangle
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const uRes = gl.getUniformLocation(prog, 'uRes');
+const uTime = gl.getUniformLocation(prog, 'uTime');
+const uCoverage = gl.getUniformLocation(prog, 'uCoverage');
+
+// Clouds are soft, so rendering below native resolution is invisible but much faster.
+const RENDER_SCALE = 0.75;
+function resize() {
+  const s = Math.min(window.devicePixelRatio || 1, 1.5) * RENDER_SCALE;
+  canvas.width  = Math.round(innerWidth * s);
+  canvas.height = Math.round(innerHeight * s);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+addEventListener('resize', resize);
+resize();
+
+const $ = id => document.getElementById(id);
+let simTime = Math.random() * 5000; // a different sky each visit
+let last = performance.now();
+
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  simTime += dt * (+$('wind').value * 4.0);
+
+  gl.uniform2f(uRes, canvas.width, canvas.height);
+  gl.uniform1f(uTime, simTime);
+  gl.uniform1f(uCoverage, +$('coverage').value);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

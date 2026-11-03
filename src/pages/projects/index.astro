@@ -1,0 +1,50 @@
+---
+import github from '@tabler/icons/outline/brand-github.svg?raw';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import LinkButton from '../../components/LinkButton.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+
+import { getCollection } from 'astro:content';
+
+// All projects live in src/content/projects.yaml, shown in file order.
+const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout title="Projects">
+	<div class="page">
+		<p class="more">
+			More on <LinkButton href="https://github.com/simchaorgel" label="GitHub" icon={github} />
+		</p>
+		<div class="grid">
+			{projects.map((project) => (
+				<ProjectCard href={`/projects/${project.id}`} {...project.data} />
+			))}
+		</div>
+	</div>
+</BaseLayout>
+
+<style>
+	.page {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		padding: 3rem;
+	}
+
+	.more {
+		margin: 0;
+		font-size: 0.875rem;
+		font-weight: 400;
+		color: var(--text-muted);
+	}
+
+	.more :global(.link-button) {
+		margin-left: 0.25rem;
+	}
+
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		gap: 1rem;
+	}
+</style>

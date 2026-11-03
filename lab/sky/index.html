@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sky</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #6f9fd0; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #panel {
+    position: fixed; right: 14px; bottom: 14px; padding: 12px 14px;
+    font: 12px/1.4 system-ui, sans-serif; color: #fff;
+    background: rgba(20, 40, 70, 0.35); backdrop-filter: blur(8px);
+    border-radius: 10px; opacity: 0; transition: opacity .4s;
+  }
+  #panel:hover { opacity: 1; }
+  #panel label { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin: 4px 0; }
+  #panel input { width: 120px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- Hover the bottom-right corner to reveal controls -->
+<div id="panel">
+  <label>Coverage <input id="coverage" type="range" min="0" max="1" step="0.01" value="0.45"></label>
+  <label>Wind     <input id="wind"     type="range" min="0" max="1" step="0.01" value="0.25"></label>
+  <label>Sun height <input id="sunH"   type="range" min="0.05" max="1.2" step="0.01" value="0.42"></label>
+  <label>Sun angle  <input id="sunA"   type="range" min="-1.2" max="1.2" step="0.01" value="0.35"></label>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false });
+if (!gl) document.body.innerHTML = '<p style="color:#fff;font:16px sans-serif;padding:20px">WebGL2 not supported.</p>';
+
+const vert = `#version 300 es
+void main() {
+  // one fullscreen triangle
+  vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
+  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+const frag = `#version 300 es
+precision highp float;
+out vec4 outColor;
+
+uniform vec2  uRes;
+uniform float uTime;
+uniform vec3  uSun;
+uniform float uCoverage;
+
+const float HORIZON = 0.10;   // horizon height on screen (0..1 from bottom)
+
+float hash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0); // quintic: no grid creases
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x),
+             mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+}
+
+const mat2 ROT = mat2(0.80, -0.60, 0.60, 0.80);
+
+float fbm(vec2 p, int oct) {
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < oct; i++) {
+    s += a * noise(p);
+    p = ROT * p * 2.03 + vec2(1.7, 9.2);
+    a *= 0.5;
+  }
+  return s;
+}
+
+vec3 skyColor(vec3 rd) {
+  float y = max(rd.y, 0.0);
+  vec3 zenith  = vec3(0.10, 0.30, 0.66);
+  vec3 horizon = vec3(0.66, 0.80, 0.93);
+  vec3 col = mix(horizon, zenith, pow(y, 0.45));
+
+  float sd = max(dot(rd, uSun), 0.0);
+  col += vec3(1.0, 0.85, 0.65) * pow(sd, 5.0)   * 0.18;  // wide glow
+  col += vec3(1.0, 0.92, 0.80) * pow(sd, 60.0)  * 0.45;  // halo
+  col += vec3(1.0, 0.97, 0.90) * smoothstep(0.9993, 0.9997, sd) * 2.0; // disc
+
+  // below the horizon: hazy ground-level air
+  if (rd.y < 0.0) col = mix(horizon, vec3(0.58, 0.70, 0.82), clamp(-rd.y * 4.0, 0.0, 1.0));
+  return col;
+}
+
+void main() {
+  vec2 frag = gl_FragCoord.xy / uRes;
+  float aspect = uRes.x / uRes.y;
+
+  // off-axis projection: keeps a straight horizon at a fixed screen height
+  vec3 rd = normalize(vec3((frag.x - 0.5) * aspect * 1.1, (frag.y - HORIZON) * 1.1, 1.0));
+  vec3 sky = skyColor(rd);
+  vec3 col = sky;
+
+  if (rd.y > 0.0) {
+    vec3 horizonCol = vec3(0.66, 0.80, 0.93);
+    float sd = max(dot(rd, uSun), 0.0);
+    vec2 sunDir2 = normalize(uSun.xz + 1e-4);
+
+    // ---------- high cirrus layer ----------
+    float t2 = 2.6 / rd.y;
+    vec2 p2 = rd.xz * t2 * 0.22;
+    p2 = mat2(0.94, -0.34, 0.34, 0.94) * p2 + vec2(uTime * 0.0025, 0.0);
+    float ci = fbm(vec2(p2.x * 0.6, p2.y * 3.5), 5);
+    ci = smoothstep(0.55, 0.85, ci) * 0.30 * exp(-t2 * 0.06);
+    vec3 ciCol = mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.96, 0.88), pow(sd, 4.0));
+    col = mix(col, ciCol, ci);
+
+    // ---------- main cumulus layer ----------
+    float t = min(1.0 / rd.y, 40.0);
+    vec2 uv = rd.xz * t * 0.8;
+
+    vec2 wind = vec2(1.0, 0.35) * uTime * 0.006;
+    uv += wind;
+
+    // slow domain warp, moving at a different rate, so shapes evolve as they drift
+    vec2 wq = uv * 0.45 - wind * 0.4;
+    vec2 warp = vec2(fbm(wq, 4), fbm(wq + vec2(5.2, 1.3) + uTime * 0.0015, 4)) - 0.5;
+    vec2 q = uv + warp * 0.7;
+
+    float c0 = mix(0.66, 0.30, uCoverage);  // density threshold
+    float base  = fbm(q, 7);
+    float light = fbm(q + sunDir2 * 0.30, 5);  // density closer to the sun (broad shading)
+
+    float d     = smoothstep(c0, c0 + 0.07, base);
+    float thick = smoothstep(c0 + 0.01, c0 + 0.17, base);
+    float occl  = smoothstep(c0 - 0.05, c0 + 0.30, light);
+
+    // lighting: sunlit edges, grey-blue self-shadowed bellies
+    float lit = exp(-occl * 1.0) * mix(1.0, 0.40, thick);
+    vec3 shadowCol = vec3(0.56, 0.62, 0.72);
+    vec3 litCol    = vec3(0.98, 0.96, 0.92);
+    vec3 cc = mix(shadowCol, litCol, lit);
+    cc = mix(cc, sky * 1.15, (1.0 - d) * 0.35);                 // ambient sky bleed at wispy edges
+    cc += vec3(1.0, 0.88, 0.70) * pow(sd, 10.0) * 0.9 * (1.0 - thick); // silver lining near sun
+
+    // aerial perspective: distant clouds dissolve into the haze
+    float fog = exp(-t * 0.075);
+    cc = mix(horizonCol, cc, fog);
+    float alpha = d * clamp(fog * 1.6, 0.0, 1.0);
+
+    col = mix(col, cc, alpha);
+  }
+
+  // dither to kill banding in the smooth gradient
+  col += (hash(gl_FragCoord.xy + fract(uTime)) - 0.5) / 255.0;
+  outColor = vec4(col, 1.0);
+}`;
+
+function compile(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, vert));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, frag));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+gl.bindVertexArray(gl.createVertexArray());
+
+const U = n => gl.getUniformLocation(prog, n);
+const uRes = U('uRes'), uTime = U('uTime'), uSun = U('uSun'), uCoverage = U('uCoverage');
+
+// Clouds are soft, so rendering below native resolution is invisible but much faster.
+const RENDER_SCALE = 0.75;
+function resize() {
+  const s = Math.min(window.devicePixelRatio || 1, 1.5) * RENDER_SCALE;
+  canvas.width  = Math.round(innerWidth * s);
+  canvas.height = Math.round(innerHeight * s);
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+addEventListener('resize', resize);
+resize();
+
+const $ = id => document.getElementById(id);
+const startOffset = Math.random() * 5000; // a different sky each visit
+let simTime = startOffset, last = performance.now();
+
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  simTime += dt * (+$('wind').value * 4.0);
+
+  const h = +$('sunH').value, a = +$('sunA').value;
+  const sun = [Math.sin(a) * Math.cos(h), Math.sin(h), Math.cos(a) * Math.cos(h)];
+
+  gl.uniform2f(uRes, canvas.width, canvas.height);
+  gl.uniform1f(uTime, simTime);
+  gl.uniform3fv(uSun, sun);
+  gl.uniform1f(uCoverage, +$('coverage').value);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

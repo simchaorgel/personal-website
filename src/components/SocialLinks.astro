@@ -1,0 +1,28 @@
+---
+import github from '@tabler/icons/outline/brand-github.svg?raw';
+import linkedin from '@tabler/icons/outline/brand-linkedin.svg?raw';
+import LinkButton from './LinkButton.astro';
+
+const links = [
+	{ href: 'https://github.com/simchaorgel', label: 'GitHub', icon: github },
+	{ href: 'https://www.linkedin.com/in/simchaorgel', label: 'LinkedIn', icon: linkedin },
+];
+---
+
+<ul class="socials">
+	{links.map((link) => (
+		<li>
+			<LinkButton {...link} />
+		</li>
+	))}
+</ul>
+
+<style>
+	.socials {
+		display: flex;
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+</style>

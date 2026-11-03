@@ -1,0 +1,231 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
+import SocialLinks from '../components/SocialLinks.astro';
+import lesswrong from '../assets/about/lesswrong.png';
+import acx from '../assets/about/acx.png';
+import pauseai from '../assets/about/pauseai.png';
+import effectiveAltruism from '../assets/about/effective-altruism.png';
+import claude from '../assets/about/claude.png';
+import tpot from '../assets/about/tpot.png';
+import maximalism from '../assets/about/maximalism.png';
+import ml from '../assets/about/ml.png';
+import hillside from '../assets/me/hillside.jpg';
+import lookingUp from '../assets/me/looking-up.png';
+import library from '../assets/me/library.jpg';
+import obsidianGraph from '../assets/misc/obsidian-graph.png';
+import desktop from '../assets/misc/desktop.png';
+import glossoRedBlue from '../assets/misc/glosso-red-blue.png';
+
+const photos = [
+	{ src: hillside, alt: 'Simcha in a white t-shirt on a sunny, wooded hillside' },
+	{ src: lookingUp, alt: 'Simcha in profile looking up at the sky, against dark trees' },
+	{ src: library, alt: 'A wood-panelled library with bookshelves, above a laptop screen' },
+];
+
+const misc = [
+	{ caption: 'obsidian graph', src: obsidianGraph, alt: 'Graph view of my Obsidian notes: coloured clusters of linked dots on black' },
+	{ caption: 'desktop', src: desktop, alt: 'My Windows desktop: app shortcuts over a long-exposure photo of light trails' },
+	{ caption: '#bluepresser', src: glossoRedBlue, alt: 'Glosso "button test" screen: press red or blue; if under 50% press blue, only red pressers keep their accounts' },
+];
+
+// Each entry can optionally have an icon (any image in src/assets/about/).
+// `tight: true` pulls the text closer, for icons with lots of empty space at the sides.
+const things = [
+	{ label: 'LessWrong', icon: lesswrong, tight: true },
+	{ label: 'music' },
+	{ label: 'ACX', icon: acx },
+	{ label: 'technology' },
+	{ label: 'AI' },
+	{ label: 'philosophy' },
+	{ label: 'pauseAI', icon: pauseai },
+	{ label: 'coding' },
+	{ label: 'EA', icon: effectiveAltruism },
+	{ label: 'minimalism' },
+	{ label: 'photography' },
+	{ label: 'transhumanism' },
+	{ label: 'tpot', icon: tpot },
+	{ label: 'the sky' },
+	{ label: 'maximalism', icon: maximalism },
+	{ label: 'piano' },
+	{ label: 'claude', icon: claude },
+	{ label: 'ML', icon: ml },
+];
+---
+
+<BaseLayout title="Home">
+	<section class="intro">
+		<h1 class="vector title">[Simcha, 21yo, he/him, London]</h1>
+		<SocialLinks />
+		<p class="vector small" data-hug>
+			{things.map((thing, i) => (
+				<><span class="thing">
+					{thing.icon && <Image src={thing.icon} alt="" class:list={['thing-icon', { tight: thing.tight }]} width={96} height={96} />}
+					{thing.label},
+				</span>{' '}</>
+			))}<span class="more">…</span>
+		</p>
+		<div class="photos">
+			{photos.map((photo) => <Image src={photo.src} alt={photo.alt} width={448} height={448} />)}
+		</div>
+
+		<hr class="divider" />
+		<div class="misc">
+			{misc.map((item) => (
+				<figure>
+					<figcaption>{item.caption}</figcaption>
+					<Image src={item.src} alt={item.alt} height={576} />
+				</figure>
+			))}
+		</div>
+	</section>
+</BaseLayout>
+
+<script>
+	// Shrink the list's box to its longest line, so the closing bracket sits
+	// right after the text instead of at the far edge of the content area.
+	function hug() {
+		document.querySelectorAll<HTMLElement>('[data-hug]').forEach((el) => {
+			el.style.width = '';
+			const range = document.createRange();
+			range.selectNodeContents(el);
+			const right = Math.max(...Array.from(range.getClientRects(), (r) => r.right));
+			const padRight = parseFloat(getComputedStyle(el).paddingRight);
+			el.style.width = `${Math.ceil(right - el.getBoundingClientRect().left + padRight)}px`;
+		});
+	}
+
+	document.addEventListener('astro:page-load', () => document.fonts.ready.then(hug));
+	window.addEventListener('resize', hug);
+</script>
+
+<style>
+	.intro {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		padding: 3rem;
+	}
+
+	.vector {
+		margin: 0;
+		font-size: 2.5rem;
+		font-weight: 200;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+
+	.title {
+		font-weight: 300;
+		/* Inter's '[' has built-in space on its left (236/2048 em at weight 300).
+		   Pull it back so the bracket itself starts at the content edge. */
+		margin-left: -0.115em;
+	}
+
+	.vector.small {
+		position: relative;
+		padding: 0.15em 0.6em;
+		font-size: 1.5rem;
+		font-weight: 300;
+		line-height: 1.6;
+	}
+
+	.thing {
+		white-space: nowrap;
+	}
+
+	.thing-icon {
+		display: inline-block;
+		width: 1em;
+		height: 1em;
+		margin-right: 0.2em;
+		border-radius: 0.15em;
+		vertical-align: -0.15em;
+		object-fit: contain;
+	}
+
+	.thing-icon.tight {
+		margin-right: 0.08em;
+	}
+
+	.photos {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		margin-top: 1rem;
+	}
+
+	.photos img {
+		width: 14rem;
+		height: 14rem;
+		object-fit: cover;
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+	}
+
+	/* Section heading followed by a thin line filling the rest of the row */
+	.divider {
+		margin: 1rem 0 0;
+		height: 1px;
+		border: none;
+		background: var(--border);
+	}
+
+
+
+	.misc {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+	}
+
+	figure {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin: 0;
+	}
+
+	figcaption {
+		font-size: 0.875rem;
+		font-weight: 400;
+		color: var(--text-muted);
+	}
+
+	figure img {
+		width: auto;
+		max-width: 100%;
+		height: 18rem;
+		object-fit: cover;
+		border: 1px solid var(--border);
+		border-radius: 0.375rem;
+	}
+
+	/* Trailing ellipsis, raised from the baseline to the middle of the text */
+	.more {
+		position: relative;
+		top: -0.3em;
+	}
+
+	/* Full-height square brackets drawn on either side of the list */
+	.vector.small::before,
+	.vector.small::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 0.35em; /* how far the top and bottom ends stick out */
+		/* Same stroke as the title's '[' (Inter stem at weight 200 = 0.043em of the 2.5rem title) */
+		border: calc(2.5rem * 0.043) solid currentColor;
+	}
+
+	.vector.small::before {
+		left: 0;
+		border-right: none;
+	}
+
+	.vector.small::after {
+		right: 0;
+		border-left: none;
+	}
+</style>

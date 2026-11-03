@@ -1,0 +1,150 @@
+---
+// Full-screen photo viewer shared by any page.
+// Usage: drop <Lightbox /> on the page, and mark each clickable image link with
+//   <a href={largeUrl} data-lightbox-item data-width={w} data-height={h}>…</a>
+// Arrow keys move between items, Esc or clicking the black closes it.
+import { ChevronLeft, ChevronRight, X } from '@lucide/astro';
+---
+
+<dialog class="lightbox" aria-label="Image viewer">
+	<img class="lightbox-img" alt="" />
+	<button class="lightbox-btn close" type="button" aria-label="Close">
+		<X size={18} />
+	</button>
+	<button class="lightbox-btn prev" type="button" aria-label="Previous">
+		<ChevronLeft size={20} />
+	</button>
+	<button class="lightbox-btn next" type="button" aria-label="Next">
+		<ChevronRight size={20} />
+	</button>
+</dialog>
+
+<style>
+	/* Full-screen, no animations */
+	.lightbox {
+		width: 100vw;
+		height: 100vh;
+		max-width: none;
+		max-height: none;
+		margin: 0;
+		padding: 0;
+		border: none;
+		background: transparent;
+		user-select: none;
+	}
+
+	.lightbox[open] {
+		display: grid;
+		place-items: center;
+	}
+
+	.lightbox::backdrop {
+		background: #000;
+	}
+
+	.lightbox-img {
+		width: auto;
+		height: auto;
+		max-width: calc(100vw - 8rem);
+		max-height: calc(100vh - 4rem);
+	}
+
+	.lightbox-btn {
+		position: fixed;
+		display: grid;
+		place-items: center;
+		width: 2.5rem;
+		height: 2.5rem;
+		padding: 0;
+		/* Dark-mode button style (fixed colours: the lightbox is always on black) */
+		background: #101010;
+		border: 1px solid #2a2a2a;
+		border-radius: 0.5rem;
+		box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+		color: #9a9a9a;
+		cursor: pointer;
+		transition: background-color 120ms ease-out, color 120ms ease-out;
+	}
+
+	.lightbox-btn:hover {
+		background: #1c1c1c;
+		color: #f5f5f5;
+	}
+
+	.close {
+		top: 1rem;
+		right: 1rem;
+	}
+
+	.prev,
+	.next {
+		top: 50%;
+		translate: 0 -50%;
+	}
+
+	.prev {
+		left: 1rem;
+	}
+
+	.next {
+		right: 1rem;
+	}
+</style>
+
+<script>
+	const preloaded = new Set<string>();
+	function preload(url: string) {
+		if (preloaded.has(url)) return;
+		preloaded.add(url);
+		new Image().src = url;
+	}
+
+	document.addEventListener('astro:page-load', () => {
+		const dialog = document.querySelector<HTMLDialogElement>('.lightbox');
+		if (!dialog) return; // no lightbox on this page
+
+		const img = dialog.querySelector<HTMLImageElement>('.lightbox-img')!;
+		const items = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-lightbox-item]'));
+		let current = 0;
+
+		function show(index: number) {
+			current = (index + items.length) % items.length;
+			const item = items[current];
+			img.width = Number(item.dataset.width);
+			img.height = Number(item.dataset.height);
+			img.src = item.href;
+			img.alt = item.querySelector('img')?.alt ?? '';
+			// Warm up the neighbours so arrowing through is instant.
+			preload(items[(current + 1) % items.length].href);
+			preload(items[(current - 1 + items.length) % items.length].href);
+		}
+
+		items.forEach((item, i) => {
+			// Start fetching the large version as soon as the press begins.
+			item.addEventListener('pointerdown', () => preload(item.href));
+			item.addEventListener('click', (e) => {
+				if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // allow open-in-new-tab
+				e.preventDefault();
+				show(i);
+				dialog.showModal();
+			});
+		});
+
+		dialog.querySelector('.close')!.addEventListener('click', () => dialog.close());
+		dialog.querySelector('.prev')!.addEventListener('click', () => show(current - 1));
+		dialog.querySelector('.next')!.addEventListener('click', () => show(current + 1));
+
+		// Clicking the black area around the image closes it.
+		dialog.addEventListener('click', (e) => {
+			if (e.target === dialog) dialog.close();
+		});
+
+		dialog.addEventListener('keydown', (e) => {
+			if (e.key === 'ArrowLeft') show(current - 1);
+			if (e.key === 'ArrowRight') show(current + 1);
+		});
+
+		// Return focus to the item you were on.
+		dialog.addEventListener('close', () => items[current]?.focus());
+	});
+</script>
