@@ -1,0 +1,61 @@
+---
+// Shown by Netlify for any address that doesn't exist.
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Not found" noindex>
+	<section class="missing">
+		<h1 class="title">[404, page not found]</h1>
+		<a class="home" href="/">Back to home</a>
+	</section>
+</BaseLayout>
+
+<style>
+	.missing {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 1.5rem;
+		padding: 3rem;
+	}
+
+	/* Same look as the homepage title */
+	.title {
+		margin: 0 0 0 -0.115em; /* pull back the '[' glyph's built-in left space */
+		font-size: 2.5rem;
+		font-weight: 300;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+
+	/* Grey button, like the others */
+	.home {
+		display: inline-flex;
+		align-items: center;
+		height: 2.25rem;
+		padding: 0 0.875rem;
+		background: var(--button);
+		border: 1px solid var(--button-border);
+		border-radius: 0.5rem;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+		color: var(--text);
+		font-size: 0.9375rem;
+		font-weight: 500;
+		text-decoration: none;
+		transition: background-color 120ms ease-out;
+	}
+
+	.home:hover {
+		background: var(--button-hover);
+	}
+
+	@media (width < 48rem) {
+		.missing {
+			padding: 1.5rem 1.25rem 3rem;
+		}
+
+		.title {
+			font-size: 1.75rem;
+		}
+	}
+</style>

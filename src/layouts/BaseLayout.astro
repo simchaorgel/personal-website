@@ -11,9 +11,11 @@ interface Props {
 	background?: string;
 	/** 'dark' turns the whole window dark: sidebar, content and scrollbar */
 	theme?: 'light' | 'dark';
+	/** Keep this page out of search results (the 404 page) */
+	noindex?: boolean;
 }
 
-const { title, background, theme } = Astro.props;
+const { title, background, theme, noindex = false } = Astro.props;
 
 // Every page has the same tab title. (`title` is kept as a label for each page but not shown.)
 const SITE_NAME = 'Simcha O';
@@ -21,6 +23,11 @@ const fullTitle = SITE_NAME;
 
 // Link preview (Discord, iMessage, X, etc.). Needs a full URL, hence `site` in astro.config.
 const ogImage = new URL('/og.jpg', Astro.site ?? Astro.url);
+
+// The official address of this page, so search engines don't treat /projects and /projects/
+// as two different pages. With a trailing slash, the way the built pages and the sitemap have it.
+const path = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : `${Astro.url.pathname}/`;
+const canonical = new URL(path, Astro.site ?? Astro.url);
 ---
 
 <html lang="en" data-theme={theme} transition:animate="none">
@@ -28,10 +35,13 @@ const ogImage = new URL('/og.jpg', Astro.site ?? Astro.url);
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<link rel="icon" href="/favicon.ico" sizes="48x48" />
+		<!-- Vector favicon: black, or white when the browser is in dark mode (so it shows on dark tabs) -->
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" type="image/png" href="/icon-512.png" sizes="512x512" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{fullTitle}</title>
+		{noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content={fullTitle} />
 		<meta property="og:site_name" content={SITE_NAME} />
