@@ -97,4 +97,19 @@ const pics = await Promise.all(
 		aspect-ratio: 1;
 		object-fit: cover;
 	}
+
+	/* Phone: two per row, sized to fill the width, with the same padding as the homepage */
+	@media (width < 48rem) {
+		.grid {
+			grid-template-columns: 1fr 1fr;
+			padding: 1.5rem 1.25rem 3rem;
+		}
+	}
+
+	/* Tiny screens (under 300px, e.g. a folded Galaxy Fold): one per row */
+	@media (width < 18.75rem) {
+		.grid {
+			grid-template-columns: 1fr;
+		}
+	}
 </style>

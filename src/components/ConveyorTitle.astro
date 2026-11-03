@@ -1,0 +1,80 @@
+---
+// Page title for the SubpageBar. If it doesn't fit (long titles on phones), it scrolls
+// sideways like a conveyor belt: shown twice in a row, sliding left by one copy, forever.
+interface Props {
+	text: string;
+}
+
+const { text } = Astro.props;
+---
+
+<h1 class="subpage-title conveyor" data-conveyor><span class="belt"><span>{text}</span></span></h1>
+
+<style>
+	.conveyor {
+		min-width: 0;
+		overflow: hidden;
+	}
+
+	/* Fade out at the edges while moving, so the text doesn't cut off abruptly */
+	.conveyor.moving {
+		mask-image: linear-gradient(90deg, transparent, #000 0.75rem, #000 calc(100% - 0.75rem), transparent);
+	}
+
+	.belt {
+		display: inline-flex;
+	}
+
+	.moving .belt {
+		animation: conveyor var(--duration) linear infinite;
+	}
+
+	.moving .belt > span {
+		padding: 0 1.5em 0 0.75rem; /* gap between the copies, and clear of the left fade */
+	}
+
+	@keyframes conveyor {
+		to {
+			translate: -50% 0;
+		}
+	}
+
+	/* No motion: the title just stays still, cut off at the edge */
+	@media (prefers-reduced-motion: reduce) {
+		.moving .belt {
+			animation: none;
+		}
+	}
+
+	/* Phone: smaller, and takes the space between whatever's either side of it.
+	   Extra specific, to outrank the shared title size from SubpageBar. */
+	@media (width < 48rem) {
+		:global(.heading) h1.conveyor {
+			flex: 1;
+			font-size: 1.25rem;
+		}
+	}
+</style>
+
+<script>
+	const SPEED = 30; // px per second
+
+	function setUpConveyors() {
+		document.querySelectorAll<HTMLElement>('[data-conveyor]').forEach((title) => {
+			const belt = title.querySelector<HTMLElement>('.belt')!;
+			belt.querySelectorAll('[aria-hidden]').forEach((copy) => copy.remove());
+			title.classList.remove('moving');
+
+			if (belt.scrollWidth <= title.clientWidth) return;
+
+			const copy = belt.firstElementChild!.cloneNode(true) as HTMLElement;
+			copy.setAttribute('aria-hidden', 'true');
+			belt.append(copy);
+			title.classList.add('moving');
+			title.style.setProperty('--duration', `${belt.scrollWidth / 2 / SPEED}s`);
+		});
+	}
+
+	document.addEventListener('astro:page-load', () => document.fonts.ready.then(setUpConveyors));
+	window.addEventListener('resize', setUpConveyors);
+</script>

@@ -26,7 +26,7 @@ const ogImage = new URL('/og.jpg', Astro.site ?? Astro.url);
 <html lang="en" data-theme={theme} transition:animate="none">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<link rel="icon" href="/favicon.ico" sizes="48x48" />
 		<link rel="icon" type="image/png" href="/icon-512.png" sizes="512x512" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -129,6 +129,11 @@ const ogImage = new URL('/og.jpg', Astro.site ?? Astro.url);
 		--arrows: #f5f5f5 !important;
 		--scrollbar: #3a3a3a !important;
 		color-scheme: dark;
+	}
+
+	/* No blue flash on tap in mobile browsers; buttons and links have their own pressed styles */
+	* {
+		-webkit-tap-highlight-color: transparent;
 	}
 
 	:focus-visible {
@@ -237,6 +242,28 @@ const ogImage = new URL('/og.jpg', Astro.site ?? Astro.url);
 		border: 1px solid var(--window-border);
 		border-radius: 1rem;
 		box-shadow: 0 4px 16px rgb(0 0 0 / 0.06);
+	}
+
+	/* Phone: a slightly inset window (sky still shows around it), with the sidebar
+	   turned into a row of icons along the top (see Sidebar.astro). The whole window
+	   scrolls, so the icons scroll away with the page rather than sticking.
+	   The insets respect notches and the home indicator. */
+	@media (width < 48rem) {
+		.window {
+			inset: max(0.375rem, env(safe-area-inset-top)) max(0.375rem, env(safe-area-inset-right))
+				max(0.375rem, env(safe-area-inset-bottom)) max(0.375rem, env(safe-area-inset-left));
+			width: auto;
+			height: auto;
+			margin: 0;
+			display: block;
+			overflow-y: auto;
+			scrollbar-width: none;
+			border-radius: 1rem;
+		}
+
+		.content {
+			overflow: visible;
+		}
 	}
 
 	.content {

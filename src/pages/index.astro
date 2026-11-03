@@ -55,7 +55,7 @@ const things = [
 
 <BaseLayout title="Home">
 	<section class="intro">
-		<h1 class="vector title">[Simcha, 21yo, he/him, London]</h1>
+		<h1 class="vector title" data-hug><span class="br">[</span>Simcha, 21yo, he/him, London<span class="br">]</span></h1>
 		<SocialLinks />
 		<p class="vector small" data-hug>
 			{things.map((thing, i) => (
@@ -90,8 +90,13 @@ const things = [
 			const range = document.createRange();
 			range.selectNodeContents(el);
 			const right = Math.max(...Array.from(range.getClientRects(), (r) => r.right));
+			const box = el.getBoundingClientRect();
+			// On-screen sizes are shrunk while the intro scales the window in (it starts at 98%),
+			// so convert back to real CSS pixels, or the box comes out too narrow and wraps.
+			const scale = box.width / el.offsetWidth || 1;
 			const padRight = parseFloat(getComputedStyle(el).paddingRight);
-			el.style.width = `${Math.ceil(right - el.getBoundingClientRect().left + padRight)}px`;
+			// +1px of slack so rounding can never push the last word onto a new line
+			el.style.width = `${Math.ceil((right - box.left) / scale + padRight) + 1}px`;
 		});
 	}
 
@@ -101,6 +106,9 @@ const things = [
 
 <style>
 	.intro {
+		/* Title size; the list's bracket strokes are derived from it */
+		--title-size: 2.5rem;
+		--list-size: 1.5rem;
 		display: flex;
 		flex-direction: column;
 		gap: 2rem;
@@ -109,7 +117,7 @@ const things = [
 
 	.vector {
 		margin: 0;
-		font-size: 2.5rem;
+		font-size: var(--title-size);
 		font-weight: 200;
 		letter-spacing: -0.02em;
 		color: var(--text);
@@ -125,7 +133,7 @@ const things = [
 	.vector.small {
 		position: relative;
 		padding: 0.15em 0.6em;
-		font-size: 1.5rem;
+		font-size: var(--list-size);
 		font-weight: 300;
 		line-height: 1.6;
 	}
@@ -215,8 +223,8 @@ const things = [
 		top: 0;
 		bottom: 0;
 		width: 0.35em; /* how far the top and bottom ends stick out */
-		/* Same stroke as the title's '[' (Inter stem at weight 200 = 0.043em of the 2.5rem title) */
-		border: calc(2.5rem * 0.043) solid currentColor;
+		/* Same stroke as the title's '[' (Inter stem at weight 200 = 0.043em of the title size) */
+		border: var(--bracket-stroke, calc(var(--title-size) * 0.043)) solid currentColor;
 	}
 
 	.vector.small::before {
@@ -227,5 +235,76 @@ const things = [
 	.vector.small::after {
 		right: 0;
 		border-left: none;
+	}
+
+	/* Phone: smaller title and list, less padding */
+	@media (width < 48rem) {
+		.intro {
+			--title-size: 1.75rem;
+			--list-size: 1.125rem;
+			padding: 1.5rem 1.25rem 3rem;
+			/* Thicker list brackets on phones: the same stroke as the drawn title brackets */
+			--bracket-stroke: calc(var(--title-size) * 0.06);
+		}
+
+		/* Photos two to a row, filling the width (square, whatever the screen size) */
+		.photos {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 0.75rem;
+		}
+
+		.photos img {
+			width: 100%;
+			height: auto;
+			aspect-ratio: 1;
+		}
+
+		/* Misc images: shrink to fit the width instead of being cropped */
+		figure img {
+			height: auto;
+			max-height: 18rem;
+		}
+
+		/* The title wraps here, so its brackets become drawn ones that span every line
+		   (like the list's): Inter's own '[' proportions at weight 300 (0.167em wide,
+		   0.06em stroke), but taller, reaching a little past the text above and below. */
+		.title {
+			position: relative;
+			margin-left: 0;
+			padding: 0 0.233em;
+			line-height: 1.2;
+		}
+
+		.title .br {
+			display: none;
+		}
+
+		.title::before,
+		.title::after {
+			content: '';
+			position: absolute;
+			top: -0.02em;
+			bottom: -0.08em;
+			width: 0.167em;
+			border: var(--bracket-stroke) solid currentColor;
+		}
+
+		.title::before {
+			left: 0;
+			border-right: none;
+		}
+
+		.title::after {
+			right: 0;
+			border-left: none;
+		}
+	}
+
+	/* Tiny screens (under 300px, e.g. a folded Galaxy Fold): one photo per row */
+	@media (width < 18.75rem) {
+		.photos {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

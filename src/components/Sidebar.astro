@@ -2,11 +2,12 @@
 import { Camera, FolderKanban, Heart, House, Mail } from '@lucide/astro';
 
 const links = [
-	{ href: '/', label: 'Home', icon: House },
-	{ href: '/projects', label: 'Projects', icon: FolderKanban },
-	{ href: '/pics', label: "Pics I've taken", icon: Camera },
-	{ href: '/favorites', label: 'Favorites', icon: Heart },
-	{ href: '/contact', label: 'Contact', icon: Mail },
+	// `short` is the label in the phone tab bar, where there's less room
+	{ href: '/', label: 'Home', short: 'Home', icon: House },
+	{ href: '/projects', label: 'Projects', short: 'Projects', icon: FolderKanban },
+	{ href: '/pics', label: "Pics I've taken", short: 'Pics', icon: Camera },
+	{ href: '/favorites', label: 'Favorites', short: 'Favorites', icon: Heart },
+	{ href: '/contact', label: 'Contact', short: 'Contact', icon: Mail },
 ];
 
 const current = Astro.url.pathname.replace(/\/$/, '') || '/';
@@ -24,7 +25,8 @@ const isActive = (href: string) => current === href || (href !== '/' && current.
 				<li>
 					<a href={link.href} aria-current={isActive(link.href) ? 'page' : undefined}>
 						<link.icon size={16} aria-hidden="true" />
-						{link.label}
+						<span class="label">{link.label}</span>
+						<span class="short">{link.short}</span>
 					</a>
 				</li>
 			))}
@@ -77,6 +79,56 @@ const isActive = (href: string) => current === href || (href !== '/' && current.
 	a[aria-current='page'] {
 		background: var(--active);
 		color: var(--text);
+	}
+
+	.short {
+		display: none;
+	}
+
+	/* Phone: a row of icons across the top of the window (scrolls away with the page).
+	   The short label is kept for screen readers only. */
+	@media (width < 48rem) {
+		.sidebar {
+			padding: 0.25rem;
+			border-right: none;
+			border-bottom: 1px solid var(--border);
+		}
+
+		.search-slot,
+		.label {
+			display: none;
+		}
+
+		.short {
+			display: inline;
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+
+		ul {
+			flex-direction: row;
+			gap: 0.25rem;
+		}
+
+		li {
+			flex: 1;
+			min-width: 0;
+		}
+
+		a {
+			justify-content: center;
+			height: 2.25rem;
+			padding: 0;
+		}
+
+		a :global(svg) {
+			width: 1.125rem;
+			height: 1.125rem;
+		}
 	}
 </style>
 

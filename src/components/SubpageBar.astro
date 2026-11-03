@@ -23,7 +23,7 @@ const { back, backLabel, backTitle, width = '42rem' } = Astro.props;
 <header class="bar" style={{ '--column': width }}>
 	<a class:list={['back', { 'icon-only': !backLabel }]} href={back} aria-label={backLabel ? undefined : `Back to ${backTitle ?? 'previous page'}`}>
 		<ChevronLeft size={16} aria-hidden="true" />
-		{backLabel}
+		{backLabel && <span class="back-label">{backLabel}</span>}
 	</a>
 	<div class="heading">
 		<slot />
@@ -64,6 +64,36 @@ const { back, backLabel, backTitle, width = '42rem' } = Astro.props;
 		width: 2rem;
 		padding: 0;
 		justify-content: center;
+	}
+
+	/* Phone: a simple row (back arrow, then the heading); the back button is just the arrow */
+	@media (width < 48rem) {
+		.bar {
+			display: flex;
+			gap: 0.5rem;
+			height: 3.5rem;
+			padding: 0 0.75rem;
+		}
+
+		.back {
+			flex: none;
+			width: 2rem;
+			padding: 0;
+			justify-content: center;
+		}
+
+		.back-label {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+
+		.heading {
+			flex: 1;
+		}
 	}
 
 	.back:hover {

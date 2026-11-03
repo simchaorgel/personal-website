@@ -89,6 +89,36 @@ import { ChevronLeft, ChevronRight, X } from '@lucide/astro';
 	.next {
 		right: 1rem;
 	}
+
+	/* Phone: the image uses the full width, with prev/next side by side underneath */
+	@media (width < 48rem) {
+		/* Room for the close button above and prev/next below, so the image sits between them */
+		.lightbox[open] {
+			padding: 4rem 0 5.5rem;
+		}
+
+		.lightbox-img {
+			max-width: calc(100vw - 1.5rem);
+			max-height: calc(100dvh - 10.5rem);
+		}
+
+		.prev,
+		.next {
+			top: auto;
+			bottom: max(1.5rem, env(safe-area-inset-bottom));
+			left: 50%;
+			right: auto;
+		}
+
+		/* 1.5rem apart, centred as a pair */
+		.prev {
+			translate: calc(-100% - 0.75rem) 0;
+		}
+
+		.next {
+			translate: 0.75rem 0;
+		}
+	}
 </style>
 
 <script>

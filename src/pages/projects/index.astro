@@ -47,4 +47,11 @@ const projects = (await getCollection('projects')).sort((a, b) => a.data.order -
 		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
 		gap: 1rem;
 	}
+
+	/* Phone: same padding as the other pages */
+	@media (width < 48rem) {
+		.page {
+			padding: 1.5rem 1.25rem 3rem;
+		}
+	}
 </style>
