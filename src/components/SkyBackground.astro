@@ -154,30 +154,55 @@
 		const RENDER_SCALE = 0.75;
 		function resize() {
 			const s = Math.min(window.devicePixelRatio || 1, 1.5) * RENDER_SCALE;
-			canvas.width = Math.round(canvas.clientWidth * s);
-			canvas.height = Math.round(canvas.clientHeight * s);
-			gl!.viewport(0, 0, canvas.width, canvas.height);
+			const w = Math.round(canvas.clientWidth * s);
+			const h = Math.round(canvas.clientHeight * s);
+			if (w === canvas.width && h === canvas.height) return; // resizing clears the canvas, so only when needed
+			canvas.width = w;
+			canvas.height = h;
+			gl!.viewport(0, 0, w, h);
+			draw(); // a paused sky still needs repainting
 		}
-		addEventListener('resize', resize);
-		resize();
 
 		// People who ask for reduced motion get a still sky.
 		const still = matchMedia('(prefers-reduced-motion: reduce)');
 		let simTime = Math.random() * 5000; // a different sky each visit
 		let last = performance.now();
 
-		function frame(now: number) {
-			const dt = Math.min((now - last) / 1000, 0.1);
-			last = now;
-			if (!still.matches) simTime += dt * Number(canvas.dataset.wind) * 4.0;
+		// On phones the window covers almost all of the sky, so once it's open the clouds
+		// freeze: drawing the full-screen shader every frame is what makes scrolling slow.
+		// On the homepage's first load that's after the intro (sky alone, then the window grows in).
+		const phone = matchMedia('(width < 48rem)');
+		const freezeAt = document.documentElement.classList.contains('intro') ? 5400 : 0; // ms after load
+		const animating = () => !phone.matches || performance.now() < freezeAt;
+		let running = false;
 
+		function draw() {
 			gl!.uniform2f(uRes, canvas.width, canvas.height);
 			gl!.uniform1f(uTime, simTime);
 			gl!.uniform1f(uCoverage, Number(canvas.dataset.coverage));
 			gl!.drawArrays(gl!.TRIANGLES, 0, 3);
-			requestAnimationFrame(frame); // browsers pause this automatically in background tabs
 		}
-		requestAnimationFrame(frame);
+
+		function frame(now: number) {
+			const dt = Math.min((now - last) / 1000, 0.1);
+			last = now;
+			if (!still.matches) simTime += dt * Number(canvas.dataset.wind) * 4.0;
+			draw();
+			running = animating();
+			if (running) requestAnimationFrame(frame); // browsers pause this automatically in background tabs
+		}
+
+		function play() {
+			if (running) return;
+			running = true;
+			last = performance.now();
+			requestAnimationFrame(frame);
+		}
+
+		addEventListener('resize', resize);
+		resize();
+		phone.addEventListener('change', () => animating() && play()); // e.g. rotating to a wide screen
+		play();
 	}
 
 	// The canvas persists across page swaps, so this only ever starts once.
