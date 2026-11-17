@@ -1,7 +1,7 @@
 ---
 // Animated cloudy-sky background drawn behind the window with WebGL.
 // Persisted across page navigations so the clouds keep drifting instead of restarting.
-// Tweak live via data-coverage / data-wind (the dev Colours panel has sliders for them).
+// Cloud amount and speed are set by data-coverage / data-wind on the canvas.
 ---
 
 <canvas class="sky" transition:persist data-coverage="0.5" data-wind="0.15" aria-hidden="true"></canvas>

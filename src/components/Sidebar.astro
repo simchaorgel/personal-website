@@ -92,13 +92,14 @@ const isActive = (href: string) => current === href || (href !== '/' && current.
 		display: none;
 	}
 
-	/* Phone: a row of icons across the top of the window (scrolls away with the page).
+	/* Phone: a row of icons across the top of the window, wall to wall, with a border all
+	   round, 10px corners and pill-shaped highlights. It scrolls away with the page.
 	   The short label is kept for screen readers only. */
 	@media (width < 48rem) {
 		.sidebar {
 			padding: 0.25rem;
-			border-right: none;
-			border-bottom: 1px solid var(--theme-border);
+			border: 1px solid var(--theme-border);
+			border-radius: 10px;
 		}
 
 		.search-slot,
@@ -130,6 +131,7 @@ const isActive = (href: string) => current === href || (href !== '/' && current.
 			justify-content: center;
 			height: 2.25rem;
 			padding: 0;
+			border-radius: 999px;
 		}
 
 		a :global(svg) {

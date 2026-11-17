@@ -2,7 +2,6 @@
 import '@fontsource-variable/inter';
 import { ClientRouter, fade } from 'astro:transitions';
 import Sidebar from '../components/Sidebar.astro';
-import ColorPanel from '../components/ColorPanel.astro';
 import SkyBackground from '../components/SkyBackground.astro';
 
 interface Props {
@@ -96,7 +95,6 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 				<slot />
 			</main>
 		</div>
-		{import.meta.env.DEV && <ColorPanel />}
 	</body>
 </html>
 
@@ -118,7 +116,7 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 	@property --arrows { syntax: '<color>'; inherits: true; initial-value: transparent; }
 	@property --scrollbar { syntax: '<color>'; inherits: true; initial-value: transparent; }
 
-	/* The whole colour scheme (the palette). In dev, the colour panel (bottom-right) overrides these live. */
+	/* The whole colour scheme (the palette) */
 	:root {
 		--page: #ffffff; /* around the window */
 		--theme-background: #f2f8f4; /* content area */
@@ -162,23 +160,22 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 
 	/* Dark window, matched to the T3 Code dark settings window.
 	   On <html> because it's the one element kept across page navigations, so the colours
-	   can fade (see the transition above). !important so it wins over the dev colour panel,
-	   which writes its overrides inline on <html>. */
+	   can fade (see the transition above). */
 	html[data-theme='dark'] {
-		--theme-background: #000000 !important;
-		--theme-sidebar: #111111 !important;
-		--theme-border: #242424 !important;
-		--theme-window-border: #242424 !important;
-		--theme-text: #f5f5f5 !important;
-		--theme-text-muted: #838484 !important;
-		--theme-hover: #171717 !important;
-		--theme-active: #1c1c1c !important;
-		--theme-button: #101010 !important;
-		--theme-button-hover: #1c1c1c !important;
-		--theme-button-border: #2a2a2a !important;
-		--theme-button-icon: #9a9a9a !important;
-		--theme-arrows: #f5f5f5 !important;
-		--theme-scrollbar: #3a3a3a !important;
+		--theme-background: #000000;
+		--theme-sidebar: #111111;
+		--theme-border: #242424;
+		--theme-window-border: #242424;
+		--theme-text: #f5f5f5;
+		--theme-text-muted: #838484;
+		--theme-hover: #171717;
+		--theme-active: #1c1c1c;
+		--theme-button: #101010;
+		--theme-button-hover: #1c1c1c;
+		--theme-button-border: #2a2a2a;
+		--theme-button-icon: #9a9a9a;
+		--theme-arrows: #f5f5f5;
+		--theme-scrollbar: #3a3a3a;
 		color-scheme: dark;
 	}
 
@@ -186,21 +183,21 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 	   Photos look best on a neutral dark, like a gallery wall: a strong colour tints
 	   how every photo reads and competes with them. Same mechanics as the dark window above. */
 	html[data-theme='gallery'] {
-		--theme-background: #120c0c !important;
-		--theme-sidebar: #1a1112 !important;
-		--theme-border: #2b1d1e !important;
-		--theme-window-border: #2b1d1e !important;
-		--theme-text: #f3ecea !important;
-		--theme-text-muted: #9c8b8b !important;
-		--theme-hover: #231718 !important;
-		--theme-active: #2d1d1f !important;
-		--theme-button: #181011 !important;
-		--theme-button-hover: #241819 !important;
-		--theme-button-border: #362527 !important;
-		--theme-button-icon: #a99898 !important;
-		--theme-arrows: #f6f0ee !important; /* near-white so they stand out */
+		--theme-background: #120c0c;
+		--theme-sidebar: #1a1112;
+		--theme-border: #2b1d1e;
+		--theme-window-border: #2b1d1e;
+		--theme-text: #f3ecea;
+		--theme-text-muted: #9c8b8b;
+		--theme-hover: #231718;
+		--theme-active: #2d1d1f;
+		--theme-button: #181011;
+		--theme-button-hover: #241819;
+		--theme-button-border: #362527;
+		--theme-button-icon: #a99898;
+		--theme-arrows: #f6f0ee; /* near-white so they stand out */
 		--focus: #ff9aa8; /* the green ring is hard to see on dark red */
-		--theme-scrollbar: #3b2a2b !important;
+		--theme-scrollbar: #3b2a2b;
 		color-scheme: dark;
 	}
 
@@ -336,7 +333,7 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 			display: block;
 			overflow-y: auto;
 			scrollbar-width: none;
-			border-radius: 1rem;
+			border-radius: 10px;
 		}
 
 		.content {
