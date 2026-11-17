@@ -6,7 +6,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <BaseLayout title="Not found" noindex>
 	<section class="missing">
 		<h1 class="title">p4ge n0t 4ound</h1>
-		<a class="home" href="/">Back to home</a>
+		<div class="actions">
+			<a class="button" href="/">Home</a>
+			<a class="button" href="/contact">Submit complaint</a>
+		</div>
 	</section>
 </BaseLayout>
 
@@ -32,8 +35,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 		color: var(--text);
 	}
 
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.5rem;
+	}
+
 	/* Grey button, like the others */
-	.home {
+	.button {
 		display: inline-flex;
 		align-items: center;
 		height: 2.25rem;
@@ -49,7 +59,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 		transition: background-color 120ms ease-out;
 	}
 
-	.home:hover {
+	.button:hover {
 		background: var(--button-hover);
 	}
 

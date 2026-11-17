@@ -228,8 +228,10 @@ const vars = [
 
 	function apply() {
 		for (const n of names) {
-			if (overrides[n]) root.style.setProperty(`--${n}`, overrides[n]);
-			else root.style.removeProperty(`--${n}`);
+			// Palette colours live under --theme-*; --page and --focus are plain.
+			const prop = getComputedStyle(root).getPropertyValue(`--theme-${n}`) ? `--theme-${n}` : `--${n}`;
+			if (overrides[n]) root.style.setProperty(prop, overrides[n]);
+			else root.style.removeProperty(prop);
 		}
 	}
 

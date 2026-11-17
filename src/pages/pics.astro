@@ -40,7 +40,7 @@ const pics = await Promise.all(
 );
 ---
 
-<BaseLayout title="Pics I've taken">
+<BaseLayout title="Pics I've taken" theme="gallery">
 	<div class="grid">
 		{pics.map((pic, i) => (
 			<a
@@ -73,7 +73,7 @@ const pics = await Promise.all(
 		grid-template-columns: repeat(auto-fill, 10.5rem);
 		justify-content: center;
 		gap: 10px;
-		padding: 3rem;
+		padding: 1.25rem 3rem 3rem;
 	}
 
 	/* Hover: small arrows appear in the gaps around the photo (.arrows, in BaseLayout) */
@@ -98,11 +98,11 @@ const pics = await Promise.all(
 		object-fit: cover;
 	}
 
-	/* Phone: two per row, sized to fill the width, with the same padding as the homepage */
+	/* Phone: two per row, sized to fill the width, with the homepage's side padding */
 	@media (width < 48rem) {
 		.grid {
 			grid-template-columns: 1fr 1fr;
-			padding: 1.5rem 1.25rem 3rem;
+			padding: 0.75rem 1.25rem 3rem;
 		}
 	}
 

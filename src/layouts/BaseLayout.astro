@@ -9,8 +9,8 @@ interface Props {
 	title: string;
 	/** Optional background for this page's content area (any CSS colour). */
 	background?: string;
-	/** 'dark' turns the whole window dark: sidebar, content and scrollbar */
-	theme?: 'light' | 'dark';
+	/** 'dark' or 'gallery' recolours the whole window: sidebar, content and scrollbar */
+	theme?: 'light' | 'dark' | 'gallery';
 	/** Keep this page out of search results (the 404 page) */
 	noindex?: boolean;
 }
@@ -61,6 +61,27 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 		<script is:inline>
 			if (location.pathname === '/') document.documentElement.classList.add('intro');
 		</script>
+		<script>
+			// On a page swap, keep the old theme for one frame and switch right after.
+			// The swap moves the sidebar into the new page, and Chrome skips CSS transitions
+			// on an element whose colours change in the same instant it's moved, so the
+			// sidebar would jump to the new colours while the rest fades.
+			let nextTheme: string | null = null;
+			document.addEventListener('astro:before-swap', (e) => {
+				const incoming = e.newDocument.documentElement;
+				nextTheme = incoming.getAttribute('data-theme');
+				const current = document.documentElement.getAttribute('data-theme');
+				if (current) incoming.setAttribute('data-theme', current);
+				else incoming.removeAttribute('data-theme');
+			});
+			document.addEventListener('astro:after-swap', () => {
+				const theme = nextTheme;
+				requestAnimationFrame(() => {
+					if (theme) document.documentElement.setAttribute('data-theme', theme);
+					else document.documentElement.removeAttribute('data-theme');
+				});
+			});
+		</script>
 	</head>
 	<body>
 		<SkyBackground />
@@ -97,27 +118,45 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 	@property --arrows { syntax: '<color>'; inherits: true; initial-value: transparent; }
 	@property --scrollbar { syntax: '<color>'; inherits: true; initial-value: transparent; }
 
-	/* The whole colour scheme. In dev, the colour panel (bottom-right) overrides these live. */
+	/* The whole colour scheme (the palette). In dev, the colour panel (bottom-right) overrides these live. */
 	:root {
 		--page: #ffffff; /* around the window */
-		--background: #f2f8f4; /* content area */
-		--sidebar: #e0efe8;
-		--border: #c9d7d1;
-		--window-border: #e1ebe6;
-		--text: #261124;
-		--text-muted: #838085;
-		--hover: #c7e2d6;
-		--active: #b3d2c3; /* aed6c4 pulled softer: displays render it more saturated */
-		--button: #e6eae8;
-		--button-hover: #dbe2df;
-		--button-border: #bcccc6;
-		--button-icon: #6f6870;
-		--arrows: #2b5042; /* hover arrows around photos and screenshots */
+		--theme-background: #f2f8f4; /* content area */
+		--theme-sidebar: #e0efe8;
+		--theme-border: #c9d7d1;
+		--theme-window-border: #e1ebe6;
+		--theme-text: #261124;
+		--theme-text-muted: #838085;
+		--theme-hover: #c7e2d6;
+		--theme-active: #b3d2c3; /* aed6c4 pulled softer: displays render it more saturated */
+		--theme-button: #e6eae8;
+		--theme-button-hover: #dbe2df;
+		--theme-button-border: #bcccc6;
+		--theme-button-icon: #6f6870;
+		--theme-arrows: #2b5042; /* hover arrows around photos and screenshots */
 		--focus: #008450; /* keyboard focus ring */
-		--scrollbar: var(--border);
+		--theme-scrollbar: var(--theme-border);
 	}
 
+	/* The colours everything uses, following the palette above with a fade.
+	   The sidebar reads the palette (--theme-*) directly and fades with its own transitions:
+	   Chrome paints links whose state changes during a page swap with a broken colour while
+	   these inherited colours are still fading (see Sidebar.astro). */
 	html {
+		--background: var(--theme-background);
+		--sidebar: var(--theme-sidebar);
+		--border: var(--theme-border);
+		--window-border: var(--theme-window-border);
+		--text: var(--theme-text);
+		--text-muted: var(--theme-text-muted);
+		--hover: var(--theme-hover);
+		--active: var(--theme-active);
+		--button: var(--theme-button);
+		--button-hover: var(--theme-button-hover);
+		--button-border: var(--theme-button-border);
+		--button-icon: var(--theme-button-icon);
+		--arrows: var(--theme-arrows);
+		--scrollbar: var(--theme-scrollbar);
 		transition: --background 200ms ease-out, --sidebar 200ms ease-out, --border 200ms ease-out, --window-border 200ms ease-out, --text 200ms ease-out, --text-muted 200ms ease-out, --hover 200ms ease-out, --active 200ms ease-out, --button 200ms ease-out, --button-hover 200ms ease-out, --button-border 200ms ease-out, --button-icon 200ms ease-out, --arrows 200ms ease-out, --scrollbar 200ms ease-out;
 	}
 
@@ -126,20 +165,42 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 	   can fade (see the transition above). !important so it wins over the dev colour panel,
 	   which writes its overrides inline on <html>. */
 	html[data-theme='dark'] {
-		--background: #000000 !important;
-		--sidebar: #111111 !important;
-		--border: #242424 !important;
-		--window-border: #242424 !important;
-		--text: #f5f5f5 !important;
-		--text-muted: #838484 !important;
-		--hover: #171717 !important;
-		--active: #1c1c1c !important;
-		--button: #101010 !important;
-		--button-hover: #1c1c1c !important;
-		--button-border: #2a2a2a !important;
-		--button-icon: #9a9a9a !important;
-		--arrows: #f5f5f5 !important;
-		--scrollbar: #3a3a3a !important;
+		--theme-background: #000000 !important;
+		--theme-sidebar: #111111 !important;
+		--theme-border: #242424 !important;
+		--theme-window-border: #242424 !important;
+		--theme-text: #f5f5f5 !important;
+		--theme-text-muted: #838484 !important;
+		--theme-hover: #171717 !important;
+		--theme-active: #1c1c1c !important;
+		--theme-button: #101010 !important;
+		--theme-button-hover: #1c1c1c !important;
+		--theme-button-border: #2a2a2a !important;
+		--theme-button-icon: #9a9a9a !important;
+		--theme-arrows: #f5f5f5 !important;
+		--theme-scrollbar: #3a3a3a !important;
+		color-scheme: dark;
+	}
+
+	/* Gallery window (the Pics page): near-black with only a hint of warm red.
+	   Photos look best on a neutral dark, like a gallery wall: a strong colour tints
+	   how every photo reads and competes with them. Same mechanics as the dark window above. */
+	html[data-theme='gallery'] {
+		--theme-background: #120c0c !important;
+		--theme-sidebar: #1a1112 !important;
+		--theme-border: #2b1d1e !important;
+		--theme-window-border: #2b1d1e !important;
+		--theme-text: #f3ecea !important;
+		--theme-text-muted: #9c8b8b !important;
+		--theme-hover: #231718 !important;
+		--theme-active: #2d1d1f !important;
+		--theme-button: #181011 !important;
+		--theme-button-hover: #241819 !important;
+		--theme-button-border: #362527 !important;
+		--theme-button-icon: #a99898 !important;
+		--theme-arrows: #f6f0ee !important; /* near-white so they stand out */
+		--focus: #ff9aa8; /* the green ring is hard to see on dark red */
+		--theme-scrollbar: #3b2a2b !important;
 		color-scheme: dark;
 	}
 
@@ -225,6 +286,11 @@ const canonical = new URL(path, Astro.site ?? Astro.url);
 	.arrows:focus-visible::before,
 	.arrows:focus-visible::after {
 		opacity: 1;
+	}
+
+	/* The arrows are the keyboard focus indicator, so no ring as well */
+	.arrows:focus-visible {
+		outline: none;
 	}
 
 	.arrows {

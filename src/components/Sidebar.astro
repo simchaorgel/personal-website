@@ -35,14 +35,20 @@ const isActive = (href: string) => current === href || (href !== '/' && current.
 </aside>
 
 <style>
+	/* The sidebar reads the palette (--theme-*) directly and fades colours with its own
+	   transitions, instead of using the fading --text, --active etc. like everything else.
+	   Chrome bug workaround: a link whose state changes during a page swap (the old and new
+	   current page) gets painted with a broken colour (plain white on dark themes) for as
+	   long as those inherited colours are still fading. */
 	.sidebar {
 		display: flex;
 		flex-direction: column;
 		padding: 0 0.5rem;
-		background: var(--sidebar);
-		border-right: 1px solid var(--border);
+		background: var(--theme-sidebar);
+		border-right: 1px solid var(--theme-border);
 		font-size: 0.875rem;
 		font-weight: 500;
+		transition: background-color 200ms ease-out, border-color 200ms ease-out;
 	}
 
 	.search-slot {
@@ -66,19 +72,20 @@ const isActive = (href: string) => current === href || (href !== '/' && current.
 		height: 2rem;
 		padding: 0 0.625rem;
 		border-radius: 0.5rem;
-		color: var(--text-muted);
+		color: var(--theme-text-muted);
 		text-decoration: none;
+		transition: color 200ms ease-out, background-color 200ms ease-out;
 	}
 
 	a:hover {
-		background: var(--hover);
-		color: var(--text);
+		background: var(--theme-hover);
+		color: var(--theme-text);
 	}
 
 	a:active,
 	a[aria-current='page'] {
-		background: var(--active);
-		color: var(--text);
+		background: var(--theme-active);
+		color: var(--theme-text);
 	}
 
 	.short {
@@ -91,7 +98,7 @@ const isActive = (href: string) => current === href || (href !== '/' && current.
 		.sidebar {
 			padding: 0.25rem;
 			border-right: none;
-			border-bottom: 1px solid var(--border);
+			border-bottom: 1px solid var(--theme-border);
 		}
 
 		.search-slot,
